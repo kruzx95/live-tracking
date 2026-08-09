@@ -61,6 +61,7 @@ class RealtimeEngine extends EventEmitter {
     this._wakeLock  = null;
     this._geoWatchId = null;
     this.isSyncConnected = false;
+    this._clientId = `cyclotrack_${Math.random().toString(36).substring(2, 10)}`;
 
     // 1. Inisialisasi BroadcastChannel lokal
     this._initBroadcastChannel();
@@ -92,7 +93,7 @@ class RealtimeEngine extends EventEmitter {
   _initMqtt() {
     try {
       this._mqttClient = mqtt.connect(MQTT_BROKER, {
-        clientId: `cyclotrack_${Math.random().toString(16).substring(2, 10)}`,
+        clientId: this._clientId,
         keepalive: 30,
         reconnectPeriod: 3000,
         clean: true,
@@ -134,11 +135,15 @@ class RealtimeEngine extends EventEmitter {
 
   // ── Publish Message ke Lintas Perangkat ───────────
   _publishMessage(data) {
-    const jsonStr = JSON.stringify(data);
+    const payloadWithSender = {
+      ...data,
+      senderId: this._clientId,
+    };
+    const jsonStr = JSON.stringify(payloadWithSender);
 
     // Broadcast ke tab lokal
     if (this._bc) {
-      try { this._bc.postMessage(data); } catch (e) {}
+      try { this._bc.postMessage(payloadWithSender); } catch (e) {}
     }
 
     // Publish ke MQTT Broker untuk HP/Desktop lain di internet
@@ -150,6 +155,11 @@ class RealtimeEngine extends EventEmitter {
   // ── Handle Incoming Messages ──────────────────────
   _handleIncomingMessage(data, origin) {
     if (!data || !data.type) return;
+
+    // Abaikan gema (echo) pesan yang dipublikasikan oleh tab/perangkat ini sendiri
+    if (data.senderId && data.senderId === this._clientId) {
+      return;
+    }
 
     switch (data.type) {
       case 'ROUTE_UPDATE':
@@ -196,6 +206,11 @@ class RealtimeEngine extends EventEmitter {
   }
 
   _applyRiderState(remoteRider) {
+    // Jika rider ini sedang disimulasikan oleh perangkat ini, abaikan update dari remote
+    if (this._simTimers.has(remoteRider.id)) {
+      return;
+    }
+
     const existing = this.riders.get(remoteRider.id);
 
     // Gabungkan path history
