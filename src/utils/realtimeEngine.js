@@ -12,6 +12,7 @@
 import mqtt from 'mqtt';
 import { haversineDistance } from './gpxParser';
 import offlineQueue from './offlineQueue';
+import replayEngine from './replayEngine';
 
 // ── Event Emitter ────────────────────────────────────
 class EventEmitter {
@@ -220,6 +221,11 @@ class RealtimeEngine extends EventEmitter {
     this.riders.set(remoteRider.id, updated);
     this.emit('rider:moved', updated);
     this.emit('riders:updated', this._getRidersArray());
+
+    // Rekam frame jika mode perekaman aktif
+    if (replayEngine.isRecording) {
+      replayEngine.recordFrame(updated);
+    }
   }
 
   // ── Route Management ──────────────────────────────

@@ -8,15 +8,21 @@
 import { useState } from 'react';
 import RoleGate from './components/RoleGate';
 import MainApp from './components/MainApp';
+import OfflineStatusBanner from './components/OfflineStatusBanner';
 
 export default function App() {
   const [userRole, setUserRole] = useState(null);
 
-  // Tampilkan halaman pemilihan peran
-  if (!userRole) {
-    return <RoleGate onSelectRole={setUserRole} />;
-  }
+  return (
+    <>
+      {/* Indikator status koneksi — tampil di semua layar */}
+      <OfflineStatusBanner />
 
-  // Tampilkan aplikasi utama setelah role dipilih
-  return <MainApp userRole={userRole} onChangeRole={() => setUserRole(null)} />;
+      {/* Halaman pemilihan peran atau aplikasi utama */}
+      {!userRole
+        ? <RoleGate onSelectRole={setUserRole} />
+        : <MainApp userRole={userRole} onChangeRole={() => setUserRole(null)} />
+      }
+    </>
+  );
 }

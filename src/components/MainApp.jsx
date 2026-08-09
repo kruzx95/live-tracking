@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import LiveMap from './LiveMap';
 import RiderTracker from './RiderTracker';
 import SpectatorDashboard from './SpectatorDashboard';
+import ReplayControls from './ReplayControls';
 import { engine } from '../utils/realtimeEngine';
 import { parseGPX, generateDemoRoute } from '../utils/gpxParser';
 
@@ -177,6 +178,15 @@ export default function MainApp({ userRole, onChangeRole }) {
     }
   }, [onChangeRole]);
 
+  // ── Replay Frame Callback ─────────────────────────
+  const handleReplayFrameUpdate = useCallback(({ riders: replayRiders, route: replayRoute }) => {
+    if (replayRiders) setRiders([...replayRiders]);
+    if (replayRoute) {
+      setRoute(replayRoute);
+      setRouteName(replayRoute.name);
+    }
+  }, []);
+
   // ── Switch Mobile View ────────────────────────────
   const handleSwitchMobileView = useCallback((vMode) => {
     setMobileView(vMode);
@@ -340,17 +350,24 @@ export default function MainApp({ userRole, onChangeRole }) {
 
           {/* Mode: SPECTATOR */}
           {mode === MODES.SPECTATOR && (
-            <SpectatorDashboard
-              riders={riders}
-              route={route}
-              focusedRiderId={focusedRiderId}
-              onFocusRider={handleFocusRider}
-            />
+            <div className="panel-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+              <SpectatorDashboard
+                riders={riders}
+                route={route}
+                focusedRiderId={focusedRiderId}
+                onFocusRider={handleFocusRider}
+              />
+              <div className="divider" />
+              <ReplayControls onReplayFrameUpdate={handleReplayFrameUpdate} />
+            </div>
           )}
 
           {/* Mode: ORGANISER (Admin only) */}
           {mode === MODES.ORGANISER && (
             <div className="panel-body">
+              {/* Event Replay Player & Recording */}
+              <ReplayControls onReplayFrameUpdate={handleReplayFrameUpdate} />
+              <div className="divider" />
 
               {/* GPX Upload */}
               <div>

@@ -8,6 +8,7 @@
  */
 
 import { useState } from 'react';
+import PWAInstallBanner from './PWAInstallBanner';
 
 const ADMIN_PIN = '1234'; // PIN default panitia
 
@@ -242,6 +243,9 @@ export default function RoleGate({ onSelectRole }) {
             Masuk 🔐
           </div>
         </button>
+
+        {/* PWA Install Banner */}
+        <PWAInstallBanner />
 
       </div>
 
