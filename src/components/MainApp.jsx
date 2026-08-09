@@ -63,6 +63,7 @@ function Toast({ toasts, onRemove }) {
 export default function MainApp({ userRole, onChangeRole }) {
   // ── ALL HOOKS MUST BE AT THE TOP — NO EARLY RETURNS BEFORE THIS POINT ──
   const [mode, setMode]               = useState(ROLE_DEFAULT_MODE[userRole] || MODES.SPECTATOR);
+  const [mobileViewMode, setMobileView] = useState('split'); // 'map', 'panel', 'split'
   const [riders, setRiders]           = useState([]);
   const [route, setRoute]             = useState(null);
   const [focusedRiderId, setFocused]  = useState(null);
@@ -71,6 +72,7 @@ export default function MainApp({ userRole, onChangeRole }) {
   const [gpxLoading, setGpxLoading]   = useState(false);
   const [routeName, setRouteName]     = useState('');
   const [myRiderId, setMyRiderId]     = useState(null);
+  const [isSyncConnected, setIsSyncConnected] = useState(engine.isSyncConnected);
   const fileInputRef = useRef(null);
 
   // ── Toast helpers ─────────────────────────────────
@@ -88,8 +90,14 @@ export default function MainApp({ userRole, onChangeRole }) {
   useEffect(() => {
     const unsubRiders = engine.on('riders:updated', (updated) => setRiders([...updated]));
     const unsubSOS    = engine.on('rider:sos', (rider) => addToast(`🆘 ${rider.name} membutuhkan bantuan!`, 'error', '🆘'));
-    const unsubRoute  = engine.on('route:loaded', (r) => addToast(`✅ Rute "${r.name}" berhasil dimuat (${r.stats.totalDistance} km)`, 'success', '📍'));
-    return () => { unsubRiders(); unsubSOS(); unsubRoute(); };
+    const unsubRoute  = engine.on('route:loaded', (r) => {
+      setRoute(r);
+      setRouteName(r.name);
+      addToast(`✅ Rute "${r.name}" terhubung ke seluruh HP rider (${r.stats.totalDistance} km)`, 'success', '📍');
+    });
+    const unsubSyncC  = engine.on('sync:connected', () => setIsSyncConnected(true));
+    const unsubSyncD  = engine.on('sync:disconnected', () => setIsSyncConnected(false));
+    return () => { unsubRiders(); unsubSOS(); unsubRoute(); unsubSyncC(); unsubSyncD(); };
   }, [addToast]);
 
   // ── Load demo route saat pertama kali ────────────
@@ -169,6 +177,15 @@ export default function MainApp({ userRole, onChangeRole }) {
     }
   }, [onChangeRole]);
 
+  // ── Switch Mobile View ────────────────────────────
+  const handleSwitchMobileView = useCallback((vMode) => {
+    setMobileView(vMode);
+    window.dispatchEvent(new Event('resize'));
+    setTimeout(() => {
+      window.dispatchEvent(new Event('resize'));
+    }, 150);
+  }, []);
+
   // ── Computed values ───────────────────────────────
   const allowedTabs = ALL_TABS.filter((tab) => tab.roles.includes(userRole));
   const roleBadge   = ROLE_BADGE[userRole];
@@ -202,17 +219,27 @@ export default function MainApp({ userRole, onChangeRole }) {
 
         <div className="topbar-spacer" />
 
-        {/* Live indicator */}
-        {riders.some((r) => r.status === 'active') && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)', fontSize: 'var(--text-xs)', color: 'var(--clr-accent)' }}>
+        {/* Live / Sync indicator */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--text-xs)' }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 4,
+            padding: '2px 8px',
+            background: isSyncConnected ? 'rgba(74,222,128,0.1)' : 'rgba(251,191,36,0.1)',
+            border: `1px solid ${isSyncConnected ? 'rgba(74,222,128,0.3)' : 'rgba(251,191,36,0.3)'}`,
+            borderRadius: 'var(--radius-full)',
+            color: isSyncConnected ? 'var(--clr-accent)' : 'var(--clr-warning)',
+            fontWeight: 600,
+          }}
+            title={isSyncConnected ? 'Terhubung ke server sinkronisasi real-time lintas HP' : 'Mencoba terhubung ke server...'}
+          >
             <div style={{
-              width: 7, height: 7, borderRadius: '50%',
-              background: 'var(--clr-accent)', boxShadow: '0 0 6px var(--clr-accent)',
+              width: 6, height: 6, borderRadius: '50%',
+              background: isSyncConnected ? 'var(--clr-accent)' : 'var(--clr-warning)',
               animation: 'sos-active-pulse 1.5s ease-in-out infinite',
             }} />
-            <span style={{ fontWeight: 700 }}>LIVE</span>
+            <span>{isSyncConnected ? '⚡ Realtime Sync' : '🔄 Connecting...'}</span>
           </div>
-        )}
+        </div>
 
         {/* Role Badge */}
         <button
@@ -233,7 +260,7 @@ export default function MainApp({ userRole, onChangeRole }) {
           {roleBadge.emoji} {roleBadge.label}
         </button>
 
-        {/* Mode Tabs — filtered by role */}
+        {/* Mode Tabs — filtered by role & responsive for mobile */}
         <nav className="topbar-mode-tabs" aria-label="Mode navigasi">
           {allowedTabs.map(({ key, label, id }) => (
             <button
@@ -248,7 +275,7 @@ export default function MainApp({ userRole, onChangeRole }) {
       </header>
 
       {/* ── Main Layout ── */}
-      <main className="app-layout">
+      <main className={`app-layout mobile-view-${mobileViewMode}`}>
         {/* Peta — selalu visible */}
         <div className="map-area">
           <LiveMap
@@ -441,6 +468,33 @@ export default function MainApp({ userRole, onChangeRole }) {
           )}
         </aside>
       </main>
+
+      {/* ── Mobile Navigation Bar Bottom ── */}
+      <nav className="mobile-bottom-bar" aria-label="Tampilan Mobile">
+        <button
+          id="btn-mobile-view-map"
+          className={`mobile-view-btn ${mobileViewMode === 'map' ? 'active' : ''}`}
+          onClick={() => handleSwitchMobileView('map')}
+        >
+          🗺️ Peta Full
+        </button>
+
+        <button
+          id="btn-mobile-view-split"
+          className={`mobile-view-btn ${mobileViewMode === 'split' ? 'active' : ''}`}
+          onClick={() => handleSwitchMobileView('split')}
+        >
+          ⚡ Split 50/50
+        </button>
+
+        <button
+          id="btn-mobile-view-panel"
+          className={`mobile-view-btn ${mobileViewMode === 'panel' ? 'active' : ''}`}
+          onClick={() => handleSwitchMobileView('panel')}
+        >
+          📋 {mode === MODES.ORGANISER ? 'Panel Admin' : mode === MODES.RIDER ? 'Panel Rider' : 'Leaderboard'}
+        </button>
+      </nav>
     </>
   );
 }

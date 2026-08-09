@@ -833,7 +833,7 @@ h1, h2, h3, h4 {
 @media (max-width: 768px) {
   :root {
     --sidebar-width: 100%;
-    --topbar-height: 52px;
+    --topbar-height: 50px;
   }
 
   body {
@@ -847,9 +847,9 @@ h1, h2, h3, h4 {
     padding: 0 var(--space-3);
     gap: var(--space-2);
     overflow-x: auto;
-    scrollbar-width: none; /* Firefox */
+    scrollbar-width: none;
   }
-  .topbar::-webkit-scrollbar { display: none; } /* Chrome/Safari */
+  .topbar::-webkit-scrollbar { display: none; }
 
   .topbar-logo {
     font-size: var(--text-md);
@@ -862,28 +862,63 @@ h1, h2, h3, h4 {
 
   .topbar-mode-tabs {
     flex-shrink: 0;
+    margin-left: auto;
   }
   .mode-tab {
-    padding: var(--space-1) var(--space-3);
+    padding: var(--space-1) var(--space-2);
     font-size: var(--text-xs);
-    min-height: 34px;
+    min-height: 32px;
+  }
+
+  @media (max-width: 500px) {
+    .topbar > div[style*="max-width: 150px"] {
+      display: none !important; /* Sembunyikan route pill di HP layar kecil agar topbar tidak sesak */
+    }
   }
 
   .app-layout {
     flex-direction: column-reverse;
+    height: calc(100dvh - var(--topbar-height) - 48px); /* Kurangi tinggi mobile bottom bar */
   }
 
-  .map-area {
-    height: 50dvh;
-    flex: 1;
+  /* ── Mobile View States ── */
+  /* Mode 1: Map Only */
+  .app-layout.mobile-view-map .map-area {
+    height: 100% !important;
+    display: block !important;
+    flex: 1 !important;
+  }
+  .app-layout.mobile-view-map .side-panel {
+    display: none !important;
+  }
+
+  /* Mode 2: Panel Only */
+  .app-layout.mobile-view-panel .map-area {
+    display: none !important;
+  }
+  .app-layout.mobile-view-panel .side-panel {
+    height: 100% !important;
+    display: flex !important;
+    flex: 1 !important;
+  }
+
+  /* Mode 3: Split 50/50 */
+  .app-layout.mobile-view-split .map-area {
+    height: 50% !important;
+    display: block !important;
+    flex: none !important;
+  }
+  .app-layout.mobile-view-split .side-panel {
+    height: 50% !important;
+    display: flex !important;
+    flex: none !important;
   }
 
   .side-panel {
-    height: 50dvh;
     width: 100%;
     border-left: none;
     border-top: 1px solid var(--clr-border);
-    padding-bottom: env(safe-area-inset-bottom, 12px);
+    padding-bottom: env(safe-area-inset-bottom, 8px);
   }
 
   .panel-body {
@@ -904,7 +939,7 @@ h1, h2, h3, h4 {
   }
 
   .btn-lg {
-    min-height: 48px; /* Touch target standar HP */
+    min-height: 46px;
     font-size: var(--text-sm);
   }
 
@@ -915,6 +950,54 @@ h1, h2, h3, h4 {
   .map-overlay-bl {
     bottom: var(--space-2);
     left: var(--space-2);
+  }
+}
+
+/* ── Mobile Navigation Bar Bottom ─────────────────── */
+.mobile-bottom-bar {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-bottom-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    height: 48px;
+    background: rgba(13, 17, 23, 0.96);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid var(--clr-border);
+    z-index: 1200;
+    padding: 0 var(--space-2);
+    flex-shrink: 0;
+  }
+
+  .mobile-view-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+    height: 36px;
+    border: none;
+    background: transparent;
+    color: var(--clr-text-muted);
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    pointer-events: auto;
+    user-select: none;
+    -webkit-user-select: none;
+    transition: all var(--transition-fast);
+  }
+
+  .mobile-view-btn.active {
+    background: var(--clr-brand-dim);
+    color: var(--clr-brand);
+    border: 1px solid var(--clr-border-glow);
   }
 }
 

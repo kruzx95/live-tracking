@@ -1,15 +1,19 @@
 /**
  * realtimeEngine.js
- * Manager real-time GPS — dua mode:
- * 1. LIVE MODE   : Terima posisi dari GPS HP peserta nyata (via BroadcastChannel / localStorage shared)
- * 2. SIMULATOR   : Gerakkan rider simulasi di sepanjang GPX trackPoints secara otomatis (testing indoor)
+ * Manager real-time GPS dengan dukungan SINKRONISASI LINTAS HP / DESKTOP (Cross-Device Sync).
  *
- * Arsitektur: Event-driven (pubsub sederhana) — komponen React subscribe ke update posisi
+ * Menggunakan 2 Jalur Real-time:
+ * 1. BroadcastChannel API : Sinkronisasi instan antar-tab/browser di perangkat yang sama.
+ * 2. MQTT over WebSockets   : Sinkronisasi instan antar-HP & Laptop berbeda di internet via broker wss://.
+ *
+ * Bebas biaya, 0 konfigurasi backend, 100% otomatis tersambung saat dibuka!
  */
 
-import { haversineDistance, estimateDistanceTraveled, isOffCourse as checkOffCourse } from './gpxParser';
+import mqtt from 'mqtt';
+import { haversineDistance } from './gpxParser';
+import offlineQueue from './offlineQueue';
 
-// ── Event Emitter ringan ─────────────────────────────
+// ── Event Emitter ────────────────────────────────────
 class EventEmitter {
   constructor() { this._listeners = {}; }
   on(event, fn) {
@@ -41,26 +45,202 @@ export const TRANSMISSION_INTERVAL = {
   SAVER:  20000, // ms — Battery saver mode
 };
 
+// Topik MQTT global untuk event komunitas
+const MQTT_BROKER = 'wss://broker.emqx.io:8084/mqtt';
+const MQTT_TOPIC  = 'cyclotrack/event_community/v1';
+const BC_CHANNEL  = 'cyclotrack_broadcast_v1';
+
 // ── Realtime Engine ──────────────────────────────────
 class RealtimeEngine extends EventEmitter {
   constructor() {
     super();
-    this.riders   = new Map(); // riderId -> RiderState
-    this.route    = null;      // RouteData dari gpxParser
+    this.riders     = new Map(); // riderId -> RiderState
+    this.route      = null;      // RouteData dari gpxParser
     this._simTimers = new Map();
-    this._channel = null;
-    this._wakeLock = null;
+    this._wakeLock  = null;
     this._geoWatchId = null;
+    this.isSyncConnected = false;
+
+    // 1. Inisialisasi BroadcastChannel lokal
+    this._initBroadcastChannel();
+
+    // 2. Inisialisasi MQTT Global Internet Sync
+    this._initMqtt();
+
+    // 3. Listen ke OfflineQueue Flush
+    offlineQueue.onFlush((pendingPoints) => {
+      pendingPoints.forEach((pt) => {
+        this.updateRiderPosition(pt.riderId, pt, true);
+      });
+    });
   }
 
-  // ── Route ─────────────────────────────────────────
-  setRoute(routeData) {
+  // ── 1. Local BroadcastChannel ─────────────────────
+  _initBroadcastChannel() {
+    if ('BroadcastChannel' in window) {
+      try {
+        this._bc = new BroadcastChannel(BC_CHANNEL);
+        this._bc.onmessage = (e) => this._handleIncomingMessage(e.data, 'local');
+      } catch (err) {
+        console.warn('[RealtimeEngine] BroadcastChannel error:', err);
+      }
+    }
+  }
+
+  // ── 2. MQTT Global Internet Relay ─────────────────
+  _initMqtt() {
+    try {
+      this._mqttClient = mqtt.connect(MQTT_BROKER, {
+        clientId: `cyclotrack_${Math.random().toString(16).substring(2, 10)}`,
+        keepalive: 30,
+        reconnectPeriod: 3000,
+        clean: true,
+      });
+
+      this._mqttClient.on('connect', () => {
+        this.isSyncConnected = true;
+        console.log('[RealtimeEngine] Connected to Global MQTT Sync Broker!');
+        this.emit('sync:connected');
+        this._mqttClient.subscribe(MQTT_TOPIC, (err) => {
+          if (err) console.error('[RealtimeEngine] MQTT subscribe failed:', err);
+        });
+
+        // Minta rute aktif jika kita baru bergabung
+        this._publishMessage({ type: 'REQUEST_SYNC' });
+      });
+
+      this._mqttClient.on('message', (topic, payload) => {
+        try {
+          const message = JSON.parse(payload.toString());
+          this._handleIncomingMessage(message, 'remote');
+        } catch (e) {
+          // ignore non-json
+        }
+      });
+
+      this._mqttClient.on('disconnect', () => {
+        this.isSyncConnected = false;
+        this.emit('sync:disconnected');
+      });
+
+      this._mqttClient.on('error', (err) => {
+        console.warn('[RealtimeEngine] MQTT error:', err);
+      });
+    } catch (err) {
+      console.warn('[RealtimeEngine] Could not initialize MQTT client:', err);
+    }
+  }
+
+  // ── Publish Message ke Lintas Perangkat ───────────
+  _publishMessage(data) {
+    const jsonStr = JSON.stringify(data);
+
+    // Broadcast ke tab lokal
+    if (this._bc) {
+      try { this._bc.postMessage(data); } catch (e) {}
+    }
+
+    // Publish ke MQTT Broker untuk HP/Desktop lain di internet
+    if (this._mqttClient && this.isSyncConnected) {
+      try { this._mqttClient.publish(MQTT_TOPIC, jsonStr); } catch (e) {}
+    }
+  }
+
+  // ── Handle Incoming Messages ──────────────────────
+  _handleIncomingMessage(data, origin) {
+    if (!data || !data.type) return;
+
+    switch (data.type) {
+      case 'ROUTE_UPDATE':
+        if (data.route) {
+          this.route = data.route;
+          this.emit('route:loaded', data.route);
+        }
+        break;
+
+      case 'RIDER_UPDATE':
+        if (data.rider) {
+          const r = data.rider;
+          this._applyRiderState(r);
+        }
+        break;
+
+      case 'RIDER_SOS':
+        if (data.riderId) {
+          const rider = this.riders.get(data.riderId);
+          if (rider) {
+            const updated = { ...rider, isSOS: data.isSOS, status: data.isSOS ? RIDER_STATUS.SOS : RIDER_STATUS.ACTIVE };
+            this.riders.set(data.riderId, updated);
+            if (data.isSOS) this.emit('rider:sos', updated);
+            else this.emit('rider:sos_cancelled', updated);
+            this.emit('riders:updated', this._getRidersArray());
+          }
+        }
+        break;
+
+      case 'REQUEST_SYNC':
+        // Jika kita punya rute, bagikan rute ke pengguna yang baru join
+        if (this.route) {
+          this._publishMessage({ type: 'ROUTE_UPDATE', route: this.route });
+        }
+        // Dan bagikan data rider kita jika ada
+        this.riders.forEach((rider) => {
+          this._publishMessage({ type: 'RIDER_UPDATE', rider });
+        });
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  _applyRiderState(remoteRider) {
+    const existing = this.riders.get(remoteRider.id);
+
+    // Gabungkan path history
+    let path = remoteRider.path || [];
+    if (existing?.path?.length) {
+      path = [...existing.path];
+      if (remoteRider.lat != null && remoteRider.lon != null) {
+        const lastPt = path[path.length - 1];
+        if (!lastPt || lastPt[0] !== remoteRider.lat || lastPt[1] !== remoteRider.lon) {
+          path.push([remoteRider.lat, remoteRider.lon]);
+          if (path.length > 500) path.shift();
+        }
+      }
+    }
+
+    const updated = {
+      ...existing,
+      ...remoteRider,
+      path,
+      lastSeen: Date.now(),
+    };
+
+    this.riders.set(remoteRider.id, updated);
+    this.emit('rider:moved', updated);
+    this.emit('riders:updated', this._getRidersArray());
+  }
+
+  // ── Route Management ──────────────────────────────
+  /**
+   * Set rute GPX aktif dan otomatis pancarkan ke seluruh HP rider/penonton lain
+   */
+  setRoute(routeData, broadcast = true) {
     this.route = routeData;
     this.emit('route:loaded', routeData);
+
+    if (broadcast) {
+      this._publishMessage({
+        type: 'ROUTE_UPDATE',
+        route: routeData,
+        timestamp: Date.now(),
+      });
+    }
   }
 
-  // ── Rider State Management ─────────────────────────
-  addRider(id, name, color = '#00c6ff') {
+  // ── Rider Management ──────────────────────────────
+  addRider(id, name, color = '#00c6ff', broadcast = true) {
     const rider = {
       id,
       name,
@@ -74,52 +254,50 @@ class RealtimeEngine extends EventEmitter {
       distanceTraveled: 0,
       distanceToFinish: 0,
       status: RIDER_STATUS.ACTIVE,
-      lastSeen: null,
+      lastSeen: Date.now(),
       isOffCourse: false,
       isSOS: false,
-      path: [], // history koordinat untuk trail line
+      path: [],
     };
     this.riders.set(id, rider);
     this.emit('riders:updated', this._getRidersArray());
+
+    if (broadcast) {
+      this._publishMessage({ type: 'RIDER_UPDATE', rider });
+    }
     return rider;
   }
 
   getRider(id) { return this.riders.get(id); }
 
-  updateRiderPosition(id, { lat, lon, ele = 0, speed = 0, heading = 0, accuracy = 0 }) {
+  updateRiderPosition(id, { lat, lon, ele = 0, speed = 0, heading = 0, accuracy = 0 }, broadcast = true) {
     const rider = this.riders.get(id);
     if (!rider) return;
 
-    // Hitung estimasi jarak tempuh ke titik GPX terdekat
     let distanceTraveled = rider.distanceTraveled;
     let isOffCourse = false;
 
     if (this.route?.trackPoints?.length > 0) {
-      // Hitung akumulasi jarak berdasarkan pergerakan dari posisi sebelumnya
       if (rider.lat !== null) {
         const delta = haversineDistance(rider.lat, rider.lon, lat, lon);
         distanceTraveled = parseFloat((rider.distanceTraveled + delta).toFixed(3));
       }
 
-      // Off-course check: jarak min ke rute > 200m
       const minDistToRoute = Math.min(
         ...this.route.trackPoints
-          .filter((_, i) => i % 5 === 0) // sample tiap 5 titik untuk performa
+          .filter((_, i) => i % 5 === 0)
           .map((pt) => haversineDistance(lat, lon, pt.lat, pt.lon))
       );
       isOffCourse = minDistToRoute > 0.2; // 200m
     }
 
-    // Estimasi jarak ke finish
     const distanceToFinish = this.route
       ? Math.max(0, this.route.stats.totalDistance - distanceTraveled)
       : 0;
 
-    // Update status otomatis
     let status = rider.isSOS ? RIDER_STATUS.SOS : RIDER_STATUS.ACTIVE;
     if (isOffCourse && !rider.isSOS) status = RIDER_STATUS.OFFCOURSE;
 
-    // Tambahkan ke trail path (simpan max 500 titik terakhir)
     const path = [...rider.path, [lat, lon]];
     if (path.length > 500) path.shift();
 
@@ -137,6 +315,16 @@ class RealtimeEngine extends EventEmitter {
     this.riders.set(id, updated);
     this.emit('rider:moved', updated);
     this.emit('riders:updated', this._getRidersArray());
+
+    // Broadcast ke perangkat lain
+    if (broadcast) {
+      if (navigator.onLine) {
+        this._publishMessage({ type: 'RIDER_UPDATE', rider: updated });
+      } else {
+        // Jika offline, enqueue ke IndexDB buffer
+        offlineQueue.enqueue({ riderId: id, lat, lon, ele, speed, accuracy, heading });
+      }
+    }
   }
 
   triggerSOS(id) {
@@ -146,6 +334,8 @@ class RealtimeEngine extends EventEmitter {
     this.riders.set(id, updated);
     this.emit('rider:sos', updated);
     this.emit('riders:updated', this._getRidersArray());
+
+    this._publishMessage({ type: 'RIDER_SOS', riderId: id, isSOS: true });
   }
 
   cancelSOS(id) {
@@ -155,6 +345,8 @@ class RealtimeEngine extends EventEmitter {
     this.riders.set(id, updated);
     this.emit('rider:sos_cancelled', updated);
     this.emit('riders:updated', this._getRidersArray());
+
+    this._publishMessage({ type: 'RIDER_SOS', riderId: id, isSOS: false });
   }
 
   removeRider(id) {
@@ -169,18 +361,9 @@ class RealtimeEngine extends EventEmitter {
     );
   }
 
-  // ── SIMULATOR MODE ────────────────────────────────
-  /**
-   * Jalankan rider simulasi di sepanjang rute GPX
-   * @param {string} riderId
-   * @param {number} speedKmh - Kecepatan simulasi (default 25 km/h)
-   * @param {number} startProgress - Mulai dari progress 0.0–1.0
-   */
+  // ── Simulator Mode ────────────────────────────────
   startSimulator(riderId, speedKmh = 25, startProgress = 0) {
-    if (!this.route?.trackPoints?.length) {
-      console.warn('[Simulator] Belum ada rute GPX. Load rute dulu.');
-      return;
-    }
+    if (!this.route?.trackPoints?.length) return;
 
     if (this._simTimers.has(riderId)) {
       this._stopSimulator(riderId);
@@ -188,22 +371,15 @@ class RealtimeEngine extends EventEmitter {
 
     const trackPoints = this.route.trackPoints;
     const totalPoints = trackPoints.length;
-
-    // Hitung index awal berdasarkan startProgress
     let currentIndex = Math.floor(startProgress * totalPoints);
 
-    // Interval update setiap 1 detik
-    // Simulasi kecepatan: jarak per interval = speedKmh / 3600 km per detik
     const metersPerSecond = (speedKmh * 1000) / 3600;
-    const UPDATE_INTERVAL = 1000; // ms
+    const UPDATE_INTERVAL = 1000;
     const metersPerUpdate = metersPerSecond * (UPDATE_INTERVAL / 1000);
-
-    // Akumulasi sisa jarak antar titik
     let overflow = 0;
 
     const timer = setInterval(() => {
       if (currentIndex >= totalPoints - 1) {
-        // Selesai — tandai finished
         const rider = this.riders.get(riderId);
         if (rider) {
           const updated = { ...rider, status: RIDER_STATUS.FINISHED };
@@ -214,29 +390,23 @@ class RealtimeEngine extends EventEmitter {
         return;
       }
 
-      // Gerak maju di sepanjang track
       let moved = metersPerUpdate + overflow;
       overflow = 0;
 
       while (moved > 0 && currentIndex < totalPoints - 1) {
         const curr = trackPoints[currentIndex];
         const next = trackPoints[currentIndex + 1];
-        const segDist = haversineDistance(curr.lat, curr.lon, next.lat, next.lon) * 1000; // m
+        const segDist = haversineDistance(curr.lat, curr.lon, next.lat, next.lon) * 1000;
 
         if (moved >= segDist) {
           moved -= segDist;
           currentIndex++;
         } else {
-          // Interpolasi posisi di tengah segmen
           const t = moved / segDist;
           const lat = curr.lat + t * (next.lat - curr.lat);
           const lon = curr.lon + t * (next.lon - curr.lon);
           const ele = curr.ele + t * (next.ele - curr.ele);
-          
-          // Hitung heading
           const heading = Math.atan2(next.lon - curr.lon, next.lat - curr.lat) * (180 / Math.PI);
-
-          // Tambahkan noise kecil supaya berasa natural
           const jitter = () => (Math.random() - 0.5) * 0.00005;
 
           this.updateRiderPosition(riderId, {
@@ -246,21 +416,15 @@ class RealtimeEngine extends EventEmitter {
             speed: speedKmh + (Math.random() - 0.5) * 4,
             heading,
             accuracy: 5,
-          });
+          }, true);
 
           overflow = 0;
           break;
         }
       }
-
-      if (currentIndex >= totalPoints - 1) {
-        this.updateRiderPosition(riderId, trackPoints[totalPoints - 1]);
-      }
-
     }, UPDATE_INTERVAL);
 
     this._simTimers.set(riderId, timer);
-    console.log(`[Simulator] Rider "${riderId}" dimulai @ ${speedKmh} km/h`);
   }
 
   _stopSimulator(riderId) {
@@ -275,12 +439,7 @@ class RealtimeEngine extends EventEmitter {
     this._simTimers.forEach((_, riderId) => this._stopSimulator(riderId));
   }
 
-  // ── LIVE GPS (HP Rider nyata) ─────────────────────
-  /**
-   * Mulai memancarkan posisi GPS HP ke engine
-   * @param {string} riderId
-   * @param {'high'|'normal'|'saver'} mode - Mode interval update
-   */
+  // ── Live GPS Watcher ──────────────────────────────
   startLiveGPS(riderId, mode = 'normal') {
     if (!('geolocation' in navigator)) {
       this.emit('error', 'GPS tidak tersedia di perangkat ini.');
@@ -289,7 +448,6 @@ class RealtimeEngine extends EventEmitter {
 
     const interval = TRANSMISSION_INTERVAL[mode.toUpperCase()] || TRANSMISSION_INTERVAL.NORMAL;
 
-    // Clear watcher lama
     if (this._geoWatchId !== null) {
       navigator.geolocation.clearWatch(this._geoWatchId);
     }
@@ -301,10 +459,10 @@ class RealtimeEngine extends EventEmitter {
           lat: latitude,
           lon: longitude,
           ele: altitude || 0,
-          speed: speed ? speed * 3.6 : 0, // m/s → km/h
+          speed: speed ? speed * 3.6 : 0,
           heading: heading || 0,
           accuracy: accuracy || 0,
-        });
+        }, true);
         this.emit('gps:update', { lat: latitude, lon: longitude, accuracy });
       },
       (err) => {
@@ -317,8 +475,6 @@ class RealtimeEngine extends EventEmitter {
         maximumAge: Math.min(interval, 5000),
       }
     );
-
-    console.log(`[LiveGPS] Rider "${riderId}" mulai tracking (mode: ${mode})`);
   }
 
   stopLiveGPS() {
@@ -333,13 +489,10 @@ class RealtimeEngine extends EventEmitter {
     if (!('wakeLock' in navigator)) return false;
     try {
       this._wakeLock = await navigator.wakeLock.request('screen');
-      this._wakeLock.addEventListener('release', () => {
-        this.emit('wakelock:released');
-      });
+      this._wakeLock.addEventListener('release', () => this.emit('wakelock:released'));
       this.emit('wakelock:active');
       return true;
     } catch (err) {
-      console.warn('[WakeLock]', err);
       return false;
     }
   }
@@ -350,17 +503,7 @@ class RealtimeEngine extends EventEmitter {
       this._wakeLock = null;
     }
   }
-
-  // ── Cleanup ───────────────────────────────────────
-  destroy() {
-    this.stopAllSimulators();
-    this.stopLiveGPS();
-    this.releaseWakeLock();
-    this.riders.clear();
-    this._listeners = {};
-  }
 }
 
-// Singleton instance
 export const engine = new RealtimeEngine();
 export default engine;
