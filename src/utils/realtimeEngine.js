@@ -233,6 +233,20 @@ class RealtimeEngine extends EventEmitter {
    * Set rute GPX aktif dan otomatis pancarkan ke seluruh HP rider/penonton lain
    */
   setRoute(routeData, broadcast = true) {
+    if (!routeData || !routeData.trackPoints || routeData.trackPoints.length === 0) return;
+
+    // Pre-calculate cumulative distance (meter) untuk setiap titik rute
+    const points = routeData.trackPoints;
+    const cumDists = [0];
+    let totalMeters = 0;
+    for (let i = 1; i < points.length; i++) {
+      const dKm = haversineDistance(points[i - 1].lat, points[i - 1].lon, points[i].lat, points[i].lon);
+      totalMeters += dKm * 1000;
+      cumDists.push(totalMeters);
+    }
+    this._routeCumDists = cumDists;
+    this._routeTotalMeters = totalMeters;
+
     this.route = routeData;
     this.emit('route:loaded', routeData);
 
@@ -289,12 +303,15 @@ class RealtimeEngine extends EventEmitter {
         distanceTraveled = parseFloat((rider.distanceTraveled + delta).toFixed(3));
       }
 
-      const minDistToRoute = Math.min(
-        ...this.route.trackPoints
-          .filter((_, i) => i % 5 === 0)
-          .map((pt) => haversineDistance(lat, lon, pt.lat, pt.lon))
-      );
-      isOffCourse = minDistToRoute > 0.2; // 200m
+      // Deteksi off-course: periksa jarak ke titik rute terdekat tanpa loncat titik (sample 100 max)
+      const sampleStep = Math.max(1, Math.floor(this.route.trackPoints.length / 100));
+      let minDistToRoute = Infinity;
+      for (let i = 0; i < this.route.trackPoints.length; i += sampleStep) {
+        const pt = this.route.trackPoints[i];
+        const d = haversineDistance(lat, lon, pt.lat, pt.lon);
+        if (d < minDistToRoute) minDistToRoute = d;
+      }
+      isOffCourse = minDistToRoute > 0.2; // 200 meter dari rute
     }
 
     const distanceToFinish = this.route
@@ -369,26 +386,36 @@ class RealtimeEngine extends EventEmitter {
 
   // ── Simulator Mode ────────────────────────────────
   startSimulator(riderId, speedKmh = 25, startProgress = 0) {
-    if (!this.route?.trackPoints?.length) return;
+    if (!this.route?.trackPoints?.length || !this._routeCumDists) return;
 
     if (this._simTimers.has(riderId)) {
       this._stopSimulator(riderId);
     }
 
-    const trackPoints = this.route.trackPoints;
-    const totalPoints = trackPoints.length;
-    let currentIndex = Math.floor(startProgress * totalPoints);
+    const points = this.route.trackPoints;
+    const cumDists = this._routeCumDists;
+    const totalMeters = this._routeTotalMeters || cumDists[cumDists.length - 1];
 
+    let currentMeters = startProgress * totalMeters;
     const metersPerSecond = (speedKmh * 1000) / 3600;
-    const UPDATE_INTERVAL = 1000;
-    const metersPerUpdate = metersPerSecond * (UPDATE_INTERVAL / 1000);
-    let overflow = 0;
+    const UPDATE_INTERVAL = 1000; // update setiap 1 detik
 
     const timer = setInterval(() => {
-      if (currentIndex >= totalPoints - 1) {
+      currentMeters += metersPerSecond;
+
+      if (currentMeters >= totalMeters) {
         const rider = this.riders.get(riderId);
         if (rider) {
-          const updated = { ...rider, status: RIDER_STATUS.FINISHED };
+          const lastPt = points[points.length - 1];
+          this.updateRiderPosition(riderId, {
+            lat: lastPt.lat,
+            lon: lastPt.lon,
+            ele: lastPt.ele,
+            speed: 0,
+            heading: 0,
+            accuracy: 5,
+          }, true);
+          const updated = { ...this.riders.get(riderId), status: RIDER_STATUS.FINISHED };
           this.riders.set(riderId, updated);
           this.emit('riders:updated', this._getRidersArray());
         }
@@ -396,38 +423,33 @@ class RealtimeEngine extends EventEmitter {
         return;
       }
 
-      let moved = metersPerUpdate + overflow;
-      overflow = 0;
-
-      while (moved > 0 && currentIndex < totalPoints - 1) {
-        const curr = trackPoints[currentIndex];
-        const next = trackPoints[currentIndex + 1];
-        const segDist = haversineDistance(curr.lat, curr.lon, next.lat, next.lon) * 1000;
-
-        if (moved >= segDist) {
-          moved -= segDist;
-          currentIndex++;
-        } else {
-          const t = moved / segDist;
-          const lat = curr.lat + t * (next.lat - curr.lat);
-          const lon = curr.lon + t * (next.lon - curr.lon);
-          const ele = curr.ele + t * (next.ele - curr.ele);
-          const heading = Math.atan2(next.lon - curr.lon, next.lat - curr.lat) * (180 / Math.PI);
-          const jitter = () => (Math.random() - 0.5) * 0.00005;
-
-          this.updateRiderPosition(riderId, {
-            lat: lat + jitter(),
-            lon: lon + jitter(),
-            ele: Math.round(ele),
-            speed: speedKmh + (Math.random() - 0.5) * 4,
-            heading,
-            accuracy: 5,
-          }, true);
-
-          overflow = 0;
-          break;
-        }
+      // Cari segmen rute [i, i+1] tempat rider berada saat ini
+      let idx = 0;
+      while (idx < cumDists.length - 2 && cumDists[idx + 1] <= currentMeters) {
+        idx++;
       }
+
+      const curr = points[idx];
+      const next = points[idx + 1] || curr;
+      const segStartMeters = cumDists[idx];
+      const segEndMeters = cumDists[idx + 1] || (segStartMeters + 1);
+      const segLen = segEndMeters - segStartMeters;
+
+      const t = segLen > 0 ? Math.min(1, Math.max(0, (currentMeters - segStartMeters) / segLen)) : 0;
+
+      const lat = curr.lat + t * (next.lat - curr.lat);
+      const lon = curr.lon + t * (next.lon - curr.lon);
+      const ele = curr.ele + t * (next.ele - curr.ele);
+      const heading = Math.atan2(next.lon - curr.lon, next.lat - curr.lat) * (180 / Math.PI);
+
+      this.updateRiderPosition(riderId, {
+        lat,
+        lon,
+        ele: Math.round(ele),
+        speed: speedKmh + (Math.random() - 0.5) * 3,
+        heading,
+        accuracy: 5,
+      }, true);
     }, UPDATE_INTERVAL);
 
     this._simTimers.set(riderId, timer);

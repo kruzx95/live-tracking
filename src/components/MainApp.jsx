@@ -148,6 +148,7 @@ export default function MainApp({ userRole, onChangeRole }) {
   // ── Simulator ─────────────────────────────────────
   const handleStartSimulator = useCallback(() => {
     if (!route) { addToast('Load rute GPX terlebih dahulu!', 'warning', '⚠️'); return; }
+    engine.setRoute(route); // Pastikan rute di engine selalu tersinkronisasi
     engine.stopAllSimulators();
     riders.forEach((r) => engine.removeRider(r.id));
     DEMO_RIDERS.forEach((dr) => {
