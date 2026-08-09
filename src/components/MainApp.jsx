@@ -102,8 +102,8 @@ export default function MainApp({ userRole, onChangeRole }) {
 
   // ── GPX File Upload ───────────────────────────────
   const handleGPXFile = useCallback(async (file) => {
-    if (!file || !file.name.endsWith('.gpx')) {
-      addToast('File harus berformat .gpx', 'error', '❌');
+    if (!file || !file.name.toLowerCase().endsWith('.gpx')) {
+      addToast('File harus berformat .gpx atau .GPX', 'error', '❌');
       return;
     }
     setGpxLoading(true);

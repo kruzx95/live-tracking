@@ -1,7 +1,8 @@
 /**
  * LiveMap.jsx
  * Komponen peta Leaflet interaktif untuk live tracking event sepeda
- * Menampilkan: rute GPX, marker rider (dots), checkpoints, trail path
+ * Fitur: Auto fit bounds dengan invalidateSize, Start/Finish auto-marker,
+ * high-contrast polyline, trail path, waypoint icons, dan tombol manual Recenter.
  */
 
 import { useEffect, useRef, useCallback } from 'react';
@@ -19,32 +20,40 @@ L.Icon.Default.mergeOptions({
 
 // ── Waypoint Icons ─────────────────────────────────
 const WAYPOINT_ICONS = {
-  start: { emoji: '🚩', color: '#4ade80' },
-  finish: { emoji: '🏁', color: '#00c6ff' },
-  checkpoint: { emoji: '📍', color: '#fbbf24' },
-  water: { emoji: '💧', color: '#38bdf8' },
-  store: { emoji: '🏪', color: '#a78bfa' },
+  start: { emoji: '🚩', color: '#4ade80', label: 'Start' },
+  finish: { emoji: '🏁', color: '#00c6ff', label: 'Finish' },
+  checkpoint: { emoji: '📍', color: '#fbbf24', label: 'CP' },
+  water: { emoji: '💧', color: '#38bdf8', label: 'Water' },
+  store: { emoji: '🏪', color: '#a78bfa', label: 'Toko' },
 };
 
-function createWaypointIcon(type) {
+function createWaypointIcon(type, label = '') {
   const cfg = WAYPOINT_ICONS[type] || WAYPOINT_ICONS.checkpoint;
+  const displayLabel = label || cfg.label;
+
   return L.divIcon({
     className: '',
     html: `
       <div style="
-        display:flex; align-items:center; justify-content:center;
-        width:32px; height:32px;
-        background: rgba(13,17,23,0.9);
+        display:flex; align-items:center; gap:4px;
+        padding: 3px 8px;
+        background: rgba(13,17,23,0.92);
         border: 2px solid ${cfg.color};
-        border-radius: 50%;
-        font-size: 15px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.6), 0 0 8px ${cfg.color}44;
+        border-radius: 20px;
+        font-family: 'Inter', sans-serif;
+        font-size: 11px; font-weight: 700;
+        color: #e6edf3;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.6), 0 0 10px ${cfg.color}55;
+        white-space: nowrap;
         cursor: pointer;
-      ">${cfg.emoji}</div>
+      ">
+        <span style="font-size:13px;">${cfg.emoji}</span>
+        <span>${displayLabel}</span>
+      </div>
     `,
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
-    popupAnchor: [0, -18],
+    iconSize: [80, 28],
+    iconAnchor: [40, 14],
+    popupAnchor: [0, -16],
   });
 }
 
@@ -73,30 +82,30 @@ function createRiderIcon(rider) {
       <div style="position:relative; width:38px; height:38px;">
         ${isSOS ? `
           <div style="
-            position:absolute; inset:-8px;
+            position:absolute; inset:-10px;
             border-radius:50%;
-            background: rgba(255,45,85,0.25);
+            background: rgba(255,45,85,0.3);
             animation: ping-ring 1.2s ease-out infinite;
           "></div>
           <div style="
-            position:absolute; inset:-4px;
+            position:absolute; inset:-5px;
             border-radius:50%;
-            background: rgba(255,45,85,0.15);
+            background: rgba(255,45,85,0.2);
             animation: ping-ring 1.2s ease-out 0.3s infinite;
           "></div>
         ` : ''}
         <div style="
           width: 38px; height: 38px;
-          background: rgba(13,17,23,0.92);
+          background: rgba(13,17,23,0.94);
           border: 2.5px solid ${dotColor};
           border-radius: 50%;
           display: flex; align-items: center; justify-content: center;
           font-family: 'Inter', sans-serif;
           font-size: 12px; font-weight: 700;
           color: ${dotColor};
-          box-shadow: 0 2px 12px rgba(0,0,0,0.7), 0 0 ${isSOS ? '16px' : '8px'} ${dotColor}66;
+          box-shadow: 0 3px 12px rgba(0,0,0,0.8), 0 0 ${isSOS ? '18px' : '10px'} ${dotColor}77;
           position: relative; z-index: 1;
-          ${isFinished ? 'opacity: 0.75;' : ''}
+          ${isFinished ? 'opacity: 0.8;' : ''}
         ">${initials}</div>
         <div style="
           position:absolute; bottom:-4px; left:50%; transform:translateX(-50%);
@@ -130,7 +139,7 @@ function createRiderPopup(rider) {
 
   return `
     <div style="font-family:'Inter',sans-serif; min-width:180px; padding:4px;">
-      <div style="font-size:13px; font-weight:700; color:#e6edf3; margin-bottom:6px;">${rider.name}</div>
+      <div style="font-size:13px; font-weight:700; color:#e6edf3; margin-bottom:4px;">${rider.name}</div>
       <div style="font-size:11px; color:#8b949e; margin-bottom:8px;">${statusLabel[rider.status] || rider.status}</div>
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:12px;">
         <div>
@@ -162,43 +171,55 @@ export default function LiveMap({ riders = [], route = null, focusedRiderId = nu
   const mapInstanceRef = useRef(null);
   const markersRef = useRef(new Map());   // riderId -> L.Marker
   const trailsRef  = useRef(new Map());   // riderId -> L.Polyline
-  const routeLayerRef = useRef(null);
-  const waypointLayersRef = useRef([]);
-  const focusedRef = useRef(null);
+  const routeLayerGroupRef = useRef(null);
+
+  // Fit rute ke layar secara presisi
+  const fitRouteToBounds = useCallback(() => {
+    const map = mapInstanceRef.current;
+    if (!map || !route?.trackPoints?.length) return;
+
+    map.invalidateSize();
+
+    if (route.bounds) {
+      map.fitBounds(route.bounds, {
+        padding: [50, 50],
+        maxZoom: 16,
+        animate: true,
+      });
+    }
+  }, [route]);
 
   // ── Init Leaflet Map ─────────────────────────────
   useEffect(() => {
     if (mapInstanceRef.current || !mapRef.current) return;
 
     const map = L.map(mapRef.current, {
-      center: [-7.2575, 112.7521], // Default: Surabaya
-      zoom: 13,
+      center: [-7.2575, 112.7521], // Default center
+      zoom: 12,
       zoomControl: true,
       attributionControl: true,
     });
 
-    // OSM tile layer dengan styling dark
+    // Layer grup rute
+    routeLayerGroupRef.current = L.layerGroup().addTo(map);
+
+    // Tile Layer: OpenStreetMap
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© <a href="https://www.openstreetmap.org/copyright" style="color:#00c6ff">OpenStreetMap</a>',
       maxZoom: 19,
       crossOrigin: true,
     }).addTo(map);
 
-    // Tambahkan CSS animasi untuk SOS ping ke head
-    if (!document.getElementById('leaflet-custom-css')) {
-      const style = document.createElement('style');
-      style.id = 'leaflet-custom-css';
-      style.textContent = `
-        @keyframes ping-ring {
-          0%   { transform: scale(1); opacity: 0.7; }
-          100% { transform: scale(2.2); opacity: 0; }
-        }
-      `;
-      document.head.appendChild(style);
-    }
+    // Invalidate size saat window / container resize
+    const resizeObserver = new ResizeObserver(() => {
+      map.invalidateSize();
+    });
+    resizeObserver.observe(mapRef.current);
 
     mapInstanceRef.current = map;
+
     return () => {
+      resizeObserver.disconnect();
       map.remove();
       mapInstanceRef.current = null;
     };
@@ -207,47 +228,42 @@ export default function LiveMap({ riders = [], route = null, focusedRiderId = nu
   // ── Render Rute GPX ──────────────────────────────
   useEffect(() => {
     const map = mapInstanceRef.current;
-    if (!map) return;
+    const layerGroup = routeLayerGroupRef.current;
+    if (!map || !layerGroup) return;
 
-    // Hapus layer rute lama
-    if (routeLayerRef.current) {
-      routeLayerRef.current.remove();
-      routeLayerRef.current = null;
-    }
-    waypointLayersRef.current.forEach((l) => l.remove());
-    waypointLayersRef.current = [];
+    layerGroup.clearLayers();
 
     if (!route?.trackPoints?.length) return;
 
-    // Gambar polyline rute
     const latLngs = route.trackPoints.map((pt) => [pt.lat, pt.lon]);
 
-    // Garis shadow (efek tebal)
+    // 1. Shadow / Glow casing luar (hitam gelap untuk kontras di peta OSM)
     L.polyline(latLngs, {
-      color: 'rgba(0, 198, 255, 0.12)',
-      weight: 12,
+      color: '#0d1117',
+      weight: 8,
+      opacity: 0.7,
       lineCap: 'round',
       lineJoin: 'round',
       interactive: false,
-    }).addTo(map);
+    }).addTo(layerGroup);
 
-    // Garis utama rute
-    const routeLine = L.polyline(latLngs, {
-      color: '#00c6ff',
-      weight: 3.5,
-      opacity: 0.85,
+    // 2. Garis utama rute (Neon Cyan / High-visibility)
+    L.polyline(latLngs, {
+      color: '#00e5ff',
+      weight: 4.5,
+      opacity: 0.95,
       lineCap: 'round',
       lineJoin: 'round',
-    }).addTo(map);
+    }).addTo(layerGroup);
 
-    routeLayerRef.current = routeLine;
-
-    // Render waypoints (checkpoint, water station, dll)
+    // 3. Render Waypoints manual dari GPX <wpt>
+    const waypointCoordinates = new Set();
     route.waypoints?.forEach((wpt) => {
+      waypointCoordinates.add(`${wpt.lat.toFixed(5)},${wpt.lon.toFixed(5)}`);
       const marker = L.marker([wpt.lat, wpt.lon], {
-        icon: createWaypointIcon(wpt.type),
+        icon: createWaypointIcon(wpt.type, wpt.name),
         zIndexOffset: 100,
-      }).addTo(map);
+      }).addTo(layerGroup);
 
       marker.bindPopup(`
         <div style="font-family:'Inter',sans-serif; padding:4px;">
@@ -256,15 +272,32 @@ export default function LiveMap({ riders = [], route = null, focusedRiderId = nu
           <div style="font-size:10px; color:#484f58; margin-top:4px; text-transform:uppercase; letter-spacing:0.06em;">${wpt.type}</div>
         </div>
       `);
-
-      waypointLayersRef.current.push(marker);
     });
 
-    // Fit map ke bounding box rute
-    if (route.bounds) {
-      map.fitBounds(route.bounds, { padding: [40, 40] });
+    // 4. Auto-add START & FINISH markers jika tidak ada waypoint manual
+    const startPt = route.trackPoints[0];
+    const finishPt = route.trackPoints[route.trackPoints.length - 1];
+
+    if (startPt && !waypointCoordinates.has(`${startPt.lat.toFixed(5)},${startPt.lon.toFixed(5)}`)) {
+      L.marker([startPt.lat, startPt.lon], {
+        icon: createWaypointIcon('start', 'START'),
+        zIndexOffset: 200,
+      }).addTo(layerGroup).bindPopup('<b>🚩 Titik Start Rute</b>');
     }
-  }, [route]);
+
+    if (finishPt && !waypointCoordinates.has(`${finishPt.lat.toFixed(5)},${finishPt.lon.toFixed(5)}`)) {
+      L.marker([finishPt.lat, finishPt.lon], {
+        icon: createWaypointIcon('finish', 'FINISH'),
+        zIndexOffset: 200,
+      }).addTo(layerGroup).bindPopup('<b>🏁 Titik Finish Rute</b>');
+    }
+
+    // Auto fit bounds setelah rute dimuat
+    setTimeout(() => {
+      fitRouteToBounds();
+    }, 150);
+
+  }, [route, fitRouteToBounds]);
 
   // ── Render Rider Markers & Trails ────────────────
   useEffect(() => {
@@ -273,7 +306,7 @@ export default function LiveMap({ riders = [], route = null, focusedRiderId = nu
 
     const currentIds = new Set(riders.map((r) => r.id));
 
-    // Hapus marker rider yang sudah tidak ada
+    // Hapus marker & trail lama yang tidak ada di list
     markersRef.current.forEach((marker, id) => {
       if (!currentIds.has(id)) {
         marker.remove();
@@ -290,16 +323,16 @@ export default function LiveMap({ riders = [], route = null, focusedRiderId = nu
     riders.forEach((rider) => {
       if (rider.lat === null || rider.lon === null) return;
 
-      // ── Trail Path ─────────────────────────────
+      // Trail Path
       if (rider.path?.length > 1) {
         if (trailsRef.current.has(rider.id)) {
           trailsRef.current.get(rider.id).setLatLngs(rider.path);
         } else {
           const trail = L.polyline(rider.path, {
             color: rider.color || '#00c6ff',
-            weight: 2,
-            opacity: 0.4,
-            dashArray: '4, 6',
+            weight: 2.5,
+            opacity: 0.5,
+            dashArray: '5, 6',
             lineCap: 'round',
             interactive: false,
           }).addTo(map);
@@ -307,12 +340,11 @@ export default function LiveMap({ riders = [], route = null, focusedRiderId = nu
         }
       }
 
-      // ── Rider Marker ───────────────────────────
+      // Rider Marker
       if (markersRef.current.has(rider.id)) {
         const marker = markersRef.current.get(rider.id);
         marker.setLatLng([rider.lat, rider.lon]);
         marker.setIcon(createRiderIcon(rider));
-        // Update popup content
         if (marker.isPopupOpen()) {
           marker.setPopupContent(createRiderPopup(rider));
         }
@@ -348,10 +380,39 @@ export default function LiveMap({ riders = [], route = null, focusedRiderId = nu
   }, [focusedRiderId, riders]);
 
   return (
-    <div
-      id="live-map"
-      ref={mapRef}
-      style={{ width: '100%', height: '100%' }}
-    />
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      {/* Map Container */}
+      <div id="live-map" ref={mapRef} style={{ width: '100%', height: '100%' }} />
+
+      {/* Button Fit Rute Manual (Pojok Kanan Atas) */}
+      {route?.trackPoints?.length > 0 && (
+        <button
+          onClick={fitRouteToBounds}
+          style={{
+            position: 'absolute',
+            top: 14,
+            right: 14,
+            zIndex: 400,
+            background: 'rgba(13, 17, 23, 0.92)',
+            border: '1px solid var(--clr-border)',
+            borderRadius: 'var(--radius-md)',
+            padding: '6px 12px',
+            color: 'var(--clr-brand)',
+            fontSize: 'var(--text-xs)',
+            fontWeight: 700,
+            cursor: 'pointer',
+            boxShadow: 'var(--shadow-md)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            backdropFilter: 'blur(8px)',
+          }}
+          title="Zoom dan pusatkan rute GPX ke layar"
+          id="btn-fit-route"
+        >
+          📍 Fit Rute
+        </button>
+      )}
+    </div>
   );
 }
