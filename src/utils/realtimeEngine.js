@@ -58,6 +58,7 @@ class RealtimeEngine extends EventEmitter {
     this.riders     = new Map(); // riderId -> RiderState
     this.route      = null;      // RouteData dari gpxParser
     this._simTimers = new Map();
+    this._deletedRiderIds = new Set();
     this._wakeLock  = null;
     this._geoWatchId = null;
     this.isSyncConnected = false;
@@ -191,6 +192,7 @@ class RealtimeEngine extends EventEmitter {
 
       case 'RIDER_REMOVE':
         if (data.riderId) {
+          this._deletedRiderIds.add(data.riderId);
           this.riders.delete(data.riderId);
           if (this._simTimers.has(data.riderId)) {
             clearInterval(this._simTimers.get(data.riderId));
@@ -217,6 +219,11 @@ class RealtimeEngine extends EventEmitter {
   }
 
   _applyRiderState(remoteRider) {
+    // Jika rider ini telah dihapus oleh admin/user, abaikan update ghost
+    if (this._deletedRiderIds.has(remoteRider.id)) {
+      return;
+    }
+
     // Jika rider ini sedang disimulasikan oleh perangkat ini, abaikan update dari remote
     if (this._simTimers.has(remoteRider.id)) {
       return;
@@ -287,6 +294,7 @@ class RealtimeEngine extends EventEmitter {
 
   // ── Rider Management ──────────────────────────────
   addRider(id, name, color = '#00c6ff', broadcast = true) {
+    this._deletedRiderIds.delete(id); // Izinkan pendaftaran baru dengan ID ini jika sebelumnya dihapus
     const rider = {
       id,
       name,
@@ -398,10 +406,15 @@ class RealtimeEngine extends EventEmitter {
     this._publishMessage({ type: 'RIDER_SOS', riderId: id, isSOS: false });
   }
 
-  removeRider(id) {
+  removeRider(id, broadcast = true) {
     this._stopSimulator(id);
+    this._deletedRiderIds.add(id);
     this.riders.delete(id);
     this.emit('riders:updated', this._getRidersArray());
+
+    if (broadcast) {
+      this._publishMessage({ type: 'RIDER_REMOVE', riderId: id });
+    }
   }
 
   _getRidersArray() {
