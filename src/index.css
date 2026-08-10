@@ -1101,6 +1101,11 @@ h1, h2, h3, h4 {
   box-shadow: var(--shadow-md) !important;
 }
 
+.leaflet-bottom.leaflet-right {
+  margin-bottom: 14px !important;
+  margin-right: 14px !important;
+}
+
 .leaflet-control-zoom a {
   background-color: var(--clr-bg-card) !important;
   color: var(--clr-text-primary) !important;

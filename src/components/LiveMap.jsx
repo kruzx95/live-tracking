@@ -8,42 +8,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import 'leaflet.markercluster/dist/MarkerCluster.css';
-import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
-import 'leaflet.markercluster';
 import { RIDER_STATUS } from '../utils/realtimeEngine';
-
-// ── Custom Cluster Icon ─────────────────────────────
-function createClusterIcon(cluster) {
-  const count = cluster.getChildCount();
-  // Warna & ukuran berdasarkan jumlah rider dalam cluster
-  const size   = count < 5 ? 40 : count < 15 ? 48 : 56;
-  const glow   = count < 5 ? '#00c6ff' : count < 15 ? '#fbbf24' : '#ff2d55';
-  return L.divIcon({
-    className: '',
-    html: `
-      <div style="
-        width:${size}px; height:${size}px;
-        background: rgba(13,17,23,0.94);
-        border: 2.5px solid ${glow};
-        border-radius: 50%;
-        display: flex; align-items: center; justify-content: center;
-        flex-direction: column;
-        font-family: 'Inter', sans-serif;
-        font-size: ${count < 10 ? 14 : 12}px; font-weight: 800;
-        color: ${glow};
-        box-shadow: 0 3px 16px rgba(0,0,0,0.8), 0 0 18px ${glow}66;
-        cursor: pointer;
-        user-select: none;
-      ">
-        ${count}
-        <div style="font-size:8px; font-weight:600; opacity:0.7; letter-spacing:0.03em; margin-top:-1px;">riders</div>
-      </div>
-    `,
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
-  });
-}
 
 // Fix default icon Leaflet (issue Vite/Webpack)
 delete L.Icon.Default.prototype._getIconUrl;
@@ -207,7 +172,6 @@ export default function LiveMap({ riders = [], route = null, focusedRiderId = nu
   const markersRef = useRef(new Map());      // riderId -> L.Marker
   const trailsRef  = useRef(new Map());      // riderId -> L.Polyline
   const routeLayerGroupRef = useRef(null);
-  const clusterGroupRef = useRef(null);      // MarkerClusterGroup
 
   // Fit rute ke layar secara presisi
   const fitRouteToBounds = useCallback(() => {
@@ -232,9 +196,12 @@ export default function LiveMap({ riders = [], route = null, focusedRiderId = nu
     const map = L.map(mapRef.current, {
       center: [-7.2575, 112.7521], // Default center
       zoom: 12,
-      zoomControl: true,
+      zoomControl: false, // Matikan kontrol zoom default di topleft
       attributionControl: true,
     });
+
+    // Tambahkan kontrol zoom manual di pojok kanan bawah agar bebas tabrakan
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
 
     // Layer grup rute
     routeLayerGroupRef.current = L.layerGroup().addTo(map);
@@ -246,22 +213,7 @@ export default function LiveMap({ riders = [], route = null, focusedRiderId = nu
       crossOrigin: true,
     }).addTo(map);
 
-    // MarkerClusterGroup — rider berdekatan otomatis dikelompokkan
-    const clusterGroup = L.markerClusterGroup({
-      iconCreateFunction: createClusterIcon,
-      maxClusterRadius: 60,          // jarak piksel sebelum digabung
-      spiderfyOnMaxZoom: true,       // klik cluster untuk spread markers
-      showCoverageOnHover: false,
-      zoomToBoundsOnClick: false,    // tidak zoom-in otomatis; langsung spiderfy
-      spiderfyDistanceMultiplier: 1.5,
-      chunkedLoading: true,
-    });
-    // Klik cluster -> spiderfy langsung, tidak zoom-in
-    clusterGroup.on('clusterclick', (e) => {
-      e.layer.spiderfy();
-    });
-    clusterGroup.addTo(map);
-    clusterGroupRef.current = clusterGroup;
+
 
     // Invalidate size saat window / container resize
     const resizeObserver = new ResizeObserver(() => {
@@ -355,15 +307,14 @@ export default function LiveMap({ riders = [], route = null, focusedRiderId = nu
   // ── Render Rider Markers & Trails ────────────────
   useEffect(() => {
     const map = mapInstanceRef.current;
-    const clusterGroup = clusterGroupRef.current;
-    if (!map || !clusterGroup) return;
+    if (!map) return;
 
     const currentIds = new Set(riders.map((r) => r.id));
 
     // Hapus marker & trail lama yang tidak ada di list terbaru
     markersRef.current.forEach((marker, id) => {
       if (!currentIds.has(id)) {
-        clusterGroup.removeLayer(marker);
+        marker.remove();
         markersRef.current.delete(id);
       }
     });
@@ -377,7 +328,7 @@ export default function LiveMap({ riders = [], route = null, focusedRiderId = nu
     riders.forEach((rider) => {
       if (rider.lat === null || rider.lon === null) return;
 
-      // Trail Path (lintasan jejak) — langsung ke map, bukan cluster
+      // Trail Path (lintasan jejak)
       if (rider.path?.length > 1) {
         if (trailsRef.current.has(rider.id)) {
           trailsRef.current.get(rider.id).setLatLngs(rider.path);
@@ -407,11 +358,11 @@ export default function LiveMap({ riders = [], route = null, focusedRiderId = nu
           marker.setPopupContent(createRiderPopup(rider));
         }
       } else {
-        // Buat marker baru
+        // Buat marker baru & langsung tambahkan ke peta
         const marker = L.marker([rider.lat, rider.lon], {
           icon: createRiderIcon(rider),
           zIndexOffset: 1000,
-        });
+        }).addTo(map);
 
         // Tooltip permanen: nama rider selalu terlihat tanpa klik
         const shortName = rider.name ? rider.name.split(' ').slice(0, 2).join(' ') : '?';
@@ -429,8 +380,6 @@ export default function LiveMap({ riders = [], route = null, focusedRiderId = nu
           onRiderClick?.(rider.id);
         });
 
-        // Tambah ke cluster group (bukan langsung ke map)
-        clusterGroup.addLayer(marker);
         markersRef.current.set(rider.id, marker);
       }
     });
