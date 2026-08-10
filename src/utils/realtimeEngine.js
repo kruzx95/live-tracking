@@ -189,6 +189,17 @@ class RealtimeEngine extends EventEmitter {
         }
         break;
 
+      case 'RIDER_REMOVE':
+        if (data.riderId) {
+          this.riders.delete(data.riderId);
+          if (this._simTimers.has(data.riderId)) {
+            clearInterval(this._simTimers.get(data.riderId));
+            this._simTimers.delete(data.riderId);
+          }
+          this.emit('riders:updated', this._getRidersArray());
+        }
+        break;
+
       case 'REQUEST_SYNC':
         // Jika kita punya rute, bagikan rute ke pengguna yang baru join
         if (this.route) {

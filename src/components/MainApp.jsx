@@ -490,6 +490,63 @@ export default function MainApp({ userRole, onChangeRole }) {
 
               <div className="divider" />
 
+              {/* Kelola Peserta / Delete Riders */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
+                  <div className="label">Kelola Peserta ({riders.length})</div>
+                  {riders.length > 0 && (
+                    <button
+                      style={{ background: 'none', border: 'none', color: 'var(--clr-danger)', fontSize: 'var(--text-xs)', cursor: 'pointer', fontWeight: 600 }}
+                      onClick={() => {
+                        if (window.confirm('Bersihkan semua peserta dari leaderboard?')) {
+                          riders.forEach((r) => engine.removeRider(r.id));
+                          addToast('Semua peserta telah dibersihkan', 'info', '🧹');
+                        }
+                      }}
+                    >
+                      🧹 Bersihkan Semua
+                    </button>
+                  )}
+                </div>
+
+                {riders.length === 0 ? (
+                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--clr-text-muted)', textAlign: 'center', padding: 'var(--space-3)', background: 'var(--clr-bg-elevated)', borderRadius: 'var(--radius-sm)' }}>
+                    Belum ada peserta terdaftar.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', maxHeight: 180, overflowY: 'auto' }}>
+                    {riders.map((r) => (
+                      <div key={r.id} style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: 'var(--space-2) var(--space-3)',
+                        background: 'var(--clr-bg-elevated)', borderRadius: 'var(--radius-sm)',
+                        border: '1px solid var(--clr-border)',
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                          <div style={{ width: 8, height: 8, borderRadius: '50%', background: r.color }} />
+                          <span style={{ fontSize: 'var(--text-xs)', fontWeight: 600 }}>{r.name}</span>
+                          <span style={{ fontSize: '10px', color: 'var(--clr-text-muted)', fontFamily: 'var(--font-mono)' }}>
+                            ({r.distanceTraveled?.toFixed(1)} km)
+                          </span>
+                        </div>
+                        <button
+                          style={{ background: 'none', border: 'none', color: 'var(--clr-danger)', fontSize: '11px', cursor: 'pointer', padding: '2px 6px' }}
+                          onClick={() => {
+                            engine.removeRider(r.id);
+                            addToast(`Peserta "${r.name}" dihapus`, 'info', '🗑️');
+                          }}
+                          title="Hapus peserta dari leaderboard"
+                        >
+                          🗑️ Hapus
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="divider" />
+
               {/* Invite Riders */}
               <div>
                 <div className="label">Undang Rider</div>
