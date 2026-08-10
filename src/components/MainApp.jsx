@@ -76,11 +76,16 @@ export default function MainApp({ userRole, onChangeRole }) {
   const [isSyncConnected, setIsSyncConnected] = useState(engine.isSyncConnected);
   const fileInputRef = useRef(null);
 
-  // ── Toast helpers ─────────────────────────────────
+  const lastNotifiedRouteRef = useRef(null);
+
+  // ── Toast helpers (dengan deduplikasi pesan) ─────
   const addToast = useCallback((message, type = 'info', icon = 'ℹ️') => {
-    const id = ++toastId;
-    setToasts((prev) => [...prev, { id, message, type, icon }]);
-    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4000);
+    setToasts((prev) => {
+      if (prev.some((t) => t.message === message)) return prev;
+      const id = ++toastId;
+      setTimeout(() => setToasts((p) => p.filter((t) => t.id !== id)), 4000);
+      return [...prev, { id, message, type, icon }];
+    });
   }, []);
 
   const removeToast = useCallback((id) => {
@@ -94,9 +99,14 @@ export default function MainApp({ userRole, onChangeRole }) {
     const unsubRoute  = engine.on('route:loaded', (r) => {
       setRoute(r);
       setRouteName(r.name);
-      addToast(`🔔 Rute Event Diterima: "${r.name}" (${r.stats.totalDistance} km)`, 'success', '📍');
-      // Simpan ke localStorage HP agar rute tetap ada meskipun HP rider kehilangan sinyal!
       try { localStorage.setItem('cyclotrack_cached_route', JSON.stringify(r)); } catch (e) {}
+
+      // Tampilkan notifikasi HANYA jika rute yang diterima benar-benar rute baru
+      const routeKey = `${r.name}_${r.stats?.totalDistance}_${r.trackPoints?.length}`;
+      if (lastNotifiedRouteRef.current !== routeKey) {
+        lastNotifiedRouteRef.current = routeKey;
+        addToast(`🔔 Rute Event Diterima: "${r.name}" (${r.stats?.totalDistance} km)`, 'success', '📍');
+      }
     });
     const unsubSyncC  = engine.on('sync:connected', () => setIsSyncConnected(true));
     const unsubSyncD  = engine.on('sync:disconnected', () => setIsSyncConnected(false));
