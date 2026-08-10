@@ -70,7 +70,6 @@ export default function MainApp({ userRole, onChangeRole }) {
   const [route, setRoute]             = useState(null);
   const [focusedRiderId, setFocused]  = useState(null);
   const [toasts, setToasts]           = useState([]);
-  const [isSimRunning, setSimRunning] = useState(false);
   const [gpxLoading, setGpxLoading]   = useState(false);
   const [routeName, setRouteName]     = useState('');
   const [myRiderId, setMyRiderId]     = useState(null);
@@ -119,23 +118,43 @@ export default function MainApp({ userRole, onChangeRole }) {
     return () => { unsubRiders(); unsubSOS(); unsubRoute(); unsubSyncC(); unsubSyncD(); unsubPart(); };
   }, [addToast]);
 
-  // ── Load rute tersimpan (offline-first) atau rute awal ────────────
+  const [isSimRunning, setSimRunning] = useState(() => {
+    try {
+      return localStorage.getItem('cyclotrack_sim_running') === 'true';
+    } catch (e) {
+      return false;
+    }
+  });
+
+  // ── Load rute tersimpan (offline-first) & Auto-Resume Simulator ────
   useEffect(() => {
+    let activeRoute = null;
     try {
       const saved = localStorage.getItem('cyclotrack_cached_route');
       if (saved) {
-        const parsedSaved = JSON.parse(saved);
-        setRoute(parsedSaved);
-        setRouteName(parsedSaved.name);
-        engine.setRoute(parsedSaved, false);
-        return;
+        activeRoute = JSON.parse(saved);
       }
     } catch (e) {}
 
-    const demo = generateDemoRoute();
-    setRoute(demo);
-    setRouteName(demo.name);
-    engine.setRoute(demo, false);
+    if (!activeRoute) {
+      activeRoute = generateDemoRoute();
+    }
+
+    setRoute(activeRoute);
+    setRouteName(activeRoute.name);
+    engine.setRoute(activeRoute, false);
+
+    // Auto-Resume simulator jika sebelumnya aktif sebelum refresh!
+    try {
+      const simWasRunning = localStorage.getItem('cyclotrack_sim_running') === 'true';
+      if (simWasRunning) {
+        DEMO_RIDERS.forEach((dr) => {
+          engine.addRider(dr.id, dr.name, dr.color);
+          engine.startSimulator(dr.id, dr.speed, dr.startProgress);
+        });
+        setSimRunning(true);
+      }
+    } catch (e) {}
   }, []);
 
   // ── GPX File Upload ───────────────────────────────
