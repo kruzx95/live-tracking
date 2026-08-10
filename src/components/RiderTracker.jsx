@@ -27,7 +27,10 @@ export default function RiderTracker({ route, riderId, riderName, onRiderChange 
     speed: 0, distance: 0, ele: 0, distanceToFinish: null,
   });
   const [offCourseAlert, setOffCourseAlert] = useState(false);
+  const [bib, setBib]                     = useState('');
+  const [pin, setPin]                     = useState('');
   const [name, setName]                   = useState(riderName || '');
+  const [authError, setAuthError]         = useState('');
   const [hasRegistered, setHasRegistered] = useState(false);
 
   const riderIdRef = useRef(riderId || `rider_${Date.now()}`);
@@ -70,16 +73,18 @@ export default function RiderTracker({ route, riderId, riderName, onRiderChange 
 
     // Restore pendaftaran & status tracking dari localStorage
     try {
+      const savedBib  = localStorage.getItem('cyclotrack_auth_bib');
       const savedName = localStorage.getItem('cyclotrack_rider_name');
       const savedId   = localStorage.getItem('cyclotrack_rider_id');
-      if (savedName && savedId) {
+      if (savedBib && savedName && savedId) {
+        setBib(savedBib);
         setName(savedName);
         riderIdRef.current = savedId;
         setHasRegistered(true);
 
         // Daftarkan ke engine jika belum terdaftar
-        engine.addRider(savedId, savedName, colorRef.current);
-        onRiderChange?.({ id: savedId, name: savedName, color: colorRef.current });
+        engine.addRider(savedId, savedName, colorRef.current, true, savedBib);
+        onRiderChange?.({ id: savedId, name: savedName, color: colorRef.current, bib: savedBib });
 
         // Jika GPS watcher sedang berjalan di engine, atur status tracking
         if (engine._geoWatchId !== null) {
@@ -96,6 +101,8 @@ export default function RiderTracker({ route, riderId, riderName, onRiderChange 
         engine.stopLiveGPS();
         engine.releaseWakeLock();
         try {
+          localStorage.removeItem('cyclotrack_auth_bib');
+          localStorage.removeItem('cyclotrack_auth_pin');
           localStorage.removeItem('cyclotrack_rider_name');
           localStorage.removeItem('cyclotrack_rider_id');
           localStorage.removeItem('cyclotrack_device_id');
@@ -123,23 +130,47 @@ export default function RiderTracker({ route, riderId, riderName, onRiderChange 
     };
   }, [onRiderChange]);
 
-  // ── Register rider ke engine ──────────────────────
-  const registerRider = useCallback(() => {
-    if (!name.trim()) return;
-    const id = riderIdRef.current;
-    engine.addRider(id, name.trim(), colorRef.current);
-    onRiderChange?.({ id, name: name.trim(), color: colorRef.current });
+  // ── Login / Register rider dengan BIB & PIN ────────
+  const handleLogin = useCallback(() => {
+    setAuthError('');
+    const bibStr = bib.trim();
+    const pinStr = pin.trim();
+
+    if (!bibStr) {
+      setAuthError('Silakan masukkan Nomor Dada (BIB)');
+      return;
+    }
+
+    // Validasi ke master list peserta resmi di engine
+    const res = engine.validateParticipant(bibStr, pinStr);
+    if (!res.valid) {
+      setAuthError(res.error);
+      return;
+    }
+
+    const participantName = res.participant ? res.participant.name : (name.trim() || `Rider #${bibStr}`);
+    const participantColor = res.participant ? res.participant.color : colorRef.current;
+    const id = `rider_bib_${bibStr}`;
+
+    riderIdRef.current = id;
+    colorRef.current = participantColor;
+    setName(participantName);
+
+    engine.addRider(id, participantName, participantColor, true, bibStr);
+    onRiderChange?.({ id, name: participantName, color: participantColor, bib: bibStr });
     setHasRegistered(true);
 
     try {
-      localStorage.setItem('cyclotrack_rider_name', name.trim());
+      localStorage.setItem('cyclotrack_auth_bib', bibStr);
+      localStorage.setItem('cyclotrack_auth_pin', pinStr);
+      localStorage.setItem('cyclotrack_rider_name', participantName);
       localStorage.setItem('cyclotrack_rider_id', id);
     } catch (e) {}
-  }, [name, onRiderChange]);
+  }, [bib, pin, name, onRiderChange]);
 
   // ── Start/Stop Tracking ───────────────────────────
   const handleStartTracking = useCallback(async () => {
-    if (!hasRegistered) registerRider();
+    if (!hasRegistered) handleLogin();
     
     setIsTracking(true);
     setGpsStatus('searching');
@@ -150,7 +181,7 @@ export default function RiderTracker({ route, riderId, riderName, onRiderChange 
     }
 
     engine.startLiveGPS(riderIdRef.current, batteryMode);
-  }, [hasRegistered, batteryMode, registerRider]);
+  }, [hasRegistered, batteryMode, handleLogin]);
 
   const handleStopTracking = useCallback(() => {
     setIsTracking(false);
@@ -183,52 +214,83 @@ export default function RiderTracker({ route, riderId, riderName, onRiderChange 
     'no-signal': 'Tidak Ada Sinyal',
   };
 
-  // ── Render: Registrasi ────────────────────────────
+  // ── Render: Form Login BIB & PIN ──────────────────
   if (!hasRegistered) {
     return (
-      <div className="panel-body" style={{ justifyContent: 'center', gap: 'var(--space-6)' }}>
+      <div className="panel-body" style={{ justifyContent: 'center', gap: 'var(--space-4)' }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '3rem', marginBottom: 'var(--space-3)' }}>🚴</div>
-          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-xl)', marginBottom: 'var(--space-2)' }}>
-            Mode Rider
+          <div style={{ fontSize: '2.8rem', marginBottom: 'var(--space-2)' }}>🏅</div>
+          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-xl)', marginBottom: 'var(--space-1)' }}>
+            Otentikasi Peserta
           </h3>
-          <p className="text-secondary" style={{ fontSize: 'var(--text-sm)' }}>
-            Masukkan nama Anda untuk mulai tracking GPS
+          <p className="text-secondary" style={{ fontSize: 'var(--text-xs)' }}>
+            Masukkan Nomor Dada (BIB) & PIN yang diberikan Panitia
           </p>
         </div>
 
-        <div>
-          <label className="label" htmlFor="rider-name-input">Nama Peserta</label>
-          <input
-            id="rider-name-input"
-            className="input"
-            type="text"
-            placeholder="Contoh: Budi Santoso"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && name.trim() && registerRider()}
-            autoFocus
-          />
+        {authError && (
+          <div style={{
+            padding: 'var(--space-3)',
+            background: 'rgba(239, 68, 68, 0.15)',
+            border: '1px solid var(--clr-danger)',
+            borderRadius: 'var(--radius-md)',
+            color: 'var(--clr-danger)',
+            fontSize: 'var(--text-xs)',
+            fontWeight: 600,
+            lineHeight: 1.5,
+          }}>
+            ⚠️ {authError}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+          <div>
+            <label className="label" htmlFor="rider-bib-input">Nomor Dada (BIB)</label>
+            <input
+              id="rider-bib-input"
+              className="input"
+              type="text"
+              placeholder="Contoh: 101"
+              value={bib}
+              onChange={(e) => setBib(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+              autoFocus
+            />
+          </div>
+
+          <div>
+            <label className="label" htmlFor="rider-pin-input">PIN Peserta (4-Digit)</label>
+            <input
+              id="rider-pin-input"
+              className="input"
+              type="password"
+              maxLength={6}
+              placeholder="••••"
+              value={pin}
+              onChange={(e) => setPin(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+            />
+          </div>
         </div>
 
         <button
           id="register-rider-btn"
           className="btn btn-primary btn-lg w-full"
-          onClick={registerRider}
-          disabled={!name.trim()}
+          onClick={handleLogin}
+          disabled={!bib.trim()}
         >
-          Daftar sebagai Rider →
+          Masuk & Mulai Live Tracking →
         </button>
 
         <div style={{
           padding: 'var(--space-3)',
           background: 'var(--clr-bg-elevated)',
           borderRadius: 'var(--radius-md)',
-          fontSize: 'var(--text-xs)',
+          fontSize: '11px',
           color: 'var(--clr-text-muted)',
-          lineHeight: 1.6,
+          lineHeight: 1.5,
         }}>
-          💡 Izinkan akses lokasi GPS saat diminta browser untuk memulai tracking.
+          💡 <strong>Belum menerima Nomor Dada & PIN?</strong> Hubungi Panitia Event di meja pendaftaran untuk mendapatkan Nomor Dada resmi Anda.
         </div>
       </div>
     );
@@ -246,30 +308,32 @@ export default function RiderTracker({ route, riderId, riderName, onRiderChange 
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
           <div style={{ width: 8, height: 8, borderRadius: '50%', background: colorRef.current }} />
-          <span style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--clr-brand)' }}>{name}</span>
+          <span style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--clr-brand)' }}>
+            {bib ? `BIB #${bib} — ${name}` : name}
+          </span>
         </div>
         <button
           style={{ background: 'none', border: 'none', color: 'var(--clr-text-muted)', fontSize: '10px', cursor: 'pointer', fontWeight: 600 }}
           onClick={() => {
             if (isTracking) {
-              if (!window.confirm('Tracking GPS sedang berjalan. Apakah Anda yakin ingin mengganti nama?')) return;
+              if (!window.confirm('Tracking GPS sedang berjalan. Apakah Anda yakin ingin keluar?')) return;
               handleStopTracking();
             }
-            // Hapus rider lama dari engine & broadcast pesan RIDER_REMOVE ke semua HP penonton & admin!
             const oldId = riderIdRef.current;
             if (oldId) {
               engine.removeRider(oldId, true);
             }
             try {
+              localStorage.removeItem('cyclotrack_auth_bib');
+              localStorage.removeItem('cyclotrack_auth_pin');
               localStorage.removeItem('cyclotrack_rider_name');
               localStorage.removeItem('cyclotrack_rider_id');
               localStorage.removeItem('cyclotrack_device_id');
             } catch (e) {}
-            riderIdRef.current = `rider_${Math.random().toString(36).substring(2, 10)}`;
             setHasRegistered(false);
           }}
         >
-          ✏️ Edit Nama / Reset Pendaftaran
+          ✏️ Keluar / Ganti BIB
         </button>
       </div>
 

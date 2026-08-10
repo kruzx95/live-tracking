@@ -74,6 +74,10 @@ export default function MainApp({ userRole, onChangeRole }) {
   const [routeName, setRouteName]     = useState('');
   const [myRiderId, setMyRiderId]     = useState(null);
   const [isSyncConnected, setIsSyncConnected] = useState(engine.isSyncConnected);
+  const [officialParticipants, setOfficialParticipants] = useState(engine.getParticipantsArray());
+  const [inputBib, setInputBib]       = useState('');
+  const [inputName, setInputName]     = useState('');
+  const [inputPin, setInputPin]       = useState('1234');
   const fileInputRef = useRef(null);
 
   const lastNotifiedRouteRef = useRef(null);
@@ -110,7 +114,8 @@ export default function MainApp({ userRole, onChangeRole }) {
     });
     const unsubSyncC  = engine.on('sync:connected', () => setIsSyncConnected(true));
     const unsubSyncD  = engine.on('sync:disconnected', () => setIsSyncConnected(false));
-    return () => { unsubRiders(); unsubSOS(); unsubRoute(); unsubSyncC(); unsubSyncD(); };
+    const unsubPart   = engine.on('participants:updated', (list) => setOfficialParticipants([...list]));
+    return () => { unsubRiders(); unsubSOS(); unsubRoute(); unsubSyncC(); unsubSyncD(); unsubPart(); };
   }, [addToast]);
 
   // ── Load rute tersimpan (offline-first) atau rute awal ────────────
@@ -549,6 +554,136 @@ export default function MainApp({ userRole, onChangeRole }) {
                         >
                           🗑️ Hapus
                         </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="divider" />
+
+              {/* Master List Peserta Resmi (BIB & PIN) */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
+                  <div className="label">Master Peserta Resmi ({officialParticipants.length})</div>
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    style={{ fontSize: '11px', color: 'var(--clr-accent)' }}
+                    onClick={() => {
+                      const demoList = [
+                        { bib: '101', name: 'Budi Santoso', pin: '1234', color: '#00c6ff' },
+                        { bib: '102', name: 'Siti Rahayu', pin: '1234', color: '#4ade80' },
+                        { bib: '103', name: 'Dedi Kurniawan', pin: '1234', color: '#fbbf24' },
+                        { bib: '104', name: 'Agus Prawoto', pin: '1234', color: '#a78bfa' },
+                        { bib: '105', name: 'Rina Wulandari', pin: '1234', color: '#f472b6' },
+                      ];
+                      engine.setParticipants(demoList, true);
+                      addToast('Daftar BIB 101–105 berhasil di-generate!', 'success', '⚡');
+                    }}
+                  >
+                    ⚡ Auto BIB 101–105
+                  </button>
+                </div>
+
+                {/* Form Tambah BIB Baru */}
+                <div style={{
+                  padding: 'var(--space-3)',
+                  background: 'var(--clr-bg-elevated)',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--clr-border)',
+                  marginBottom: 'var(--space-3)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 'var(--space-2)',
+                }}>
+                  <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--clr-brand)' }}>➕ Tambah Peserta Baru</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 1fr', gap: 'var(--space-2)' }}>
+                    <input
+                      className="input"
+                      style={{ fontSize: 'var(--text-xs)', padding: '4px 8px' }}
+                      placeholder="BIB (101)"
+                      value={inputBib}
+                      onChange={(e) => setInputBib(e.target.value)}
+                    />
+                    <input
+                      className="input"
+                      style={{ fontSize: 'var(--text-xs)', padding: '4px 8px' }}
+                      placeholder="Nama Peserta"
+                      value={inputName}
+                      onChange={(e) => setInputName(e.target.value)}
+                    />
+                    <input
+                      className="input"
+                      style={{ fontSize: 'var(--text-xs)', padding: '4px 8px' }}
+                      placeholder="PIN (1234)"
+                      value={inputPin}
+                      onChange={(e) => setInputPin(e.target.value)}
+                    />
+                  </div>
+                  <button
+                    className="btn btn-primary btn-sm w-full"
+                    disabled={!inputBib.trim() || !inputName.trim()}
+                    onClick={() => {
+                      const newList = [
+                        ...officialParticipants,
+                        { bib: inputBib.trim(), name: inputName.trim(), pin: inputPin.trim() || '1234', color: '#00c6ff' },
+                      ];
+                      engine.setParticipants(newList, true);
+                      setInputBib('');
+                      setInputName('');
+                      addToast(`Peserta BIB #${inputBib.trim()} ditambahkan`, 'success', '✅');
+                    }}
+                  >
+                    Simpan Peserta Resmi
+                  </button>
+                </div>
+
+                {/* List Peserta Terdaftar */}
+                {officialParticipants.length === 0 ? (
+                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--clr-text-muted)', textAlign: 'center', padding: 'var(--space-3)', background: 'var(--clr-bg-elevated)', borderRadius: 'var(--radius-sm)' }}>
+                    Belum ada master peserta resmi. Klik <strong>Auto BIB 101–105</strong> untuk membuat sampel cepat.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', maxHeight: 180, overflowY: 'auto' }}>
+                    {officialParticipants.map((p) => (
+                      <div key={p.bib} style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: 'var(--space-2) var(--space-3)',
+                        background: 'var(--clr-bg-elevated)', borderRadius: 'var(--radius-sm)',
+                        border: '1px solid var(--clr-border)',
+                      }}>
+                        <div>
+                          <div style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--clr-brand)' }}>
+                            BIB #{p.bib} — {p.name}
+                          </div>
+                          <div style={{ fontSize: '10px', color: 'var(--clr-text-muted)' }}>
+                            PIN: <strong style={{ fontFamily: 'var(--font-mono)', color: 'var(--clr-accent)' }}>{p.pin}</strong>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <button
+                            style={{ background: 'none', border: 'none', color: 'var(--clr-text-muted)', fontSize: '11px', cursor: 'pointer' }}
+                            onClick={() => {
+                              navigator.clipboard?.writeText(`BIB #${p.bib} | Nama: ${p.name} | PIN: ${p.pin}`);
+                              addToast(`Kredensial BIB #${p.bib} disalin!`, 'info', '📋');
+                            }}
+                            title="Salin kredensial peserta"
+                          >
+                            📋
+                          </button>
+                          <button
+                            style={{ background: 'none', border: 'none', color: 'var(--clr-danger)', fontSize: '11px', cursor: 'pointer' }}
+                            onClick={() => {
+                              const filtered = officialParticipants.filter((item) => item.bib !== p.bib);
+                              engine.setParticipants(filtered, true);
+                              addToast(`BIB #${p.bib} dihapus dari master list`, 'info', '🗑️');
+                            }}
+                            title="Hapus dari master list"
+                          >
+                            🗑️
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>

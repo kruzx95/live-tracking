@@ -212,18 +212,26 @@ export default function SpectatorDashboard({ riders = [], route = null, focusedR
 
                   {/* Dot avatar */}
                   <div style={{
-                    width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
+                    width: 32, height: 28, borderRadius: 'var(--radius-sm)', flexShrink: 0,
                     background: rider.color + '22',
-                    border: `2px solid ${rider.color || 'var(--clr-brand)'}`,
+                    border: `1.5px solid ${rider.color || 'var(--clr-brand)'}`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '10px', fontWeight: 700, color: rider.color || 'var(--clr-brand)',
+                    fontSize: rider.bib ? '9px' : '10px', fontWeight: 800, color: rider.color || 'var(--clr-brand)',
+                    fontFamily: 'var(--font-mono)',
                   }}>
-                    {rider.name?.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2) || '?'}
+                    {rider.bib ? `#${rider.bib}` : (rider.name?.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2) || '?')}
                   </div>
 
                   {/* Rider info */}
                   <div className="rider-info">
-                    <div className="rider-name">{rider.name}</div>
+                    <div className="rider-name">
+                      {rider.bib && (
+                        <span style={{ color: 'var(--clr-brand)', marginRight: 6, fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
+                          #{rider.bib}
+                        </span>
+                      )}
+                      {rider.name}
+                    </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginTop: '2px' }}>
                       {/* Progress bar mini */}
                       {route && (

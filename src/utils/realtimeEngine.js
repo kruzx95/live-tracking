@@ -56,6 +56,7 @@ class RealtimeEngine extends EventEmitter {
   constructor() {
     super();
     this.riders     = new Map(); // riderId -> RiderState
+    this.participants = new Map(); // bib -> { bib, name, pin, color }
     this.route      = null;      // RouteData dari gpxParser
     this._simTimers = new Map();
     this._deletedRiderIds = new Set();
@@ -211,10 +212,22 @@ class RealtimeEngine extends EventEmitter {
         this.emit('riders:updated', []);
         break;
 
+      case 'PARTICIPANTS_UPDATE':
+        if (data.participants && Array.isArray(data.participants)) {
+          this.participants.clear();
+          data.participants.forEach((p) => this.participants.set(String(p.bib), p));
+          this.emit('participants:updated', this.getParticipantsArray());
+        }
+        break;
+
       case 'REQUEST_SYNC':
         // Jika kita punya rute, bagikan rute ke pengguna yang baru join
         if (this.route) {
           this._publishMessage({ type: 'ROUTE_UPDATE', route: this.route });
+        }
+        // Bagikan data peserta resmi jika ada
+        if (this.participants.size > 0) {
+          this._publishMessage({ type: 'PARTICIPANTS_UPDATE', participants: this.getParticipantsArray() });
         }
         // Dan bagikan data rider kita jika ada
         this.riders.forEach((rider) => {
@@ -302,13 +315,15 @@ class RealtimeEngine extends EventEmitter {
   }
 
   // ── Rider Management ──────────────────────────────
-  addRider(id, name, color = '#00c6ff', broadcast = true) {
+  addRider(id, name, color = '#00c6ff', broadcast = true, bib = null) {
     this._deletedRiderIds.delete(id); // Izinkan pendaftaran baru dengan ID ini jika sebelumnya dihapus
+    const existing = this.riders.get(id);
     const rider = {
       id,
       name,
-      color,
-      lat: null,
+      bib: bib || existing?.bib || null,
+      color: existing ? existing.color : color,
+      lat: existing ? existing.lat : null,
       lon: null,
       ele: 0,
       speed: 0,
@@ -437,6 +452,46 @@ class RealtimeEngine extends EventEmitter {
     if (broadcast) {
       this._publishMessage({ type: 'CLEAR_ALL_RIDERS' });
     }
+  }
+
+  // ── Official Participants Master List (BIB & PIN) ──
+  setParticipants(list, broadcast = true) {
+    this.participants.clear();
+    list.forEach((p) => {
+      this.participants.set(String(p.bib), {
+        bib: String(p.bib),
+        name: p.name,
+        pin: String(p.pin),
+        color: p.color || '#00c6ff',
+      });
+    });
+    this.emit('participants:updated', this.getParticipantsArray());
+    if (broadcast) {
+      this._publishMessage({ type: 'PARTICIPANTS_UPDATE', participants: this.getParticipantsArray() });
+    }
+  }
+
+  getParticipantsArray() {
+    return Array.from(this.participants.values()).sort((a, b) => parseInt(a.bib) - parseInt(b.bib));
+  }
+
+  validateParticipant(bib, pin) {
+    const bibStr = String(bib).trim();
+    const pinStr = String(pin).trim();
+
+    // Jika master list kosong (belum dibuat admin), ijinkan pendaftaran darurat
+    if (this.participants.size === 0) {
+      return { valid: true, isEmergency: true };
+    }
+
+    const p = this.participants.get(bibStr);
+    if (!p) {
+      return { valid: false, error: `Nomor Dada (BIB #${bibStr}) tidak terdaftar dalam event ini!` };
+    }
+    if (p.pin !== pinStr) {
+      return { valid: false, error: `PIN untuk BIB #${bibStr} salah! Silakan cek PIN Anda.` };
+    }
+    return { valid: true, participant: p };
   }
 
   _getRidersArray() {

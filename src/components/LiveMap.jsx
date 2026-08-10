@@ -369,8 +369,10 @@ export default function LiveMap({ riders = [], route = null, focusedRiderId = nu
           zIndexOffset: 1000,
         }).addTo(map);
 
-        // Tooltip permanen: nama rider selalu terlihat tanpa klik
-        const shortName = rider.name ? rider.name.split(' ').slice(0, 2).join(' ') : '?';
+        // Tooltip permanen: BIB + nama rider selalu terlihat tanpa klik
+        const shortName = rider.bib
+          ? `#${rider.bib} ${rider.name ? rider.name.split(' ')[0] : ''}`
+          : (rider.name ? rider.name.split(' ').slice(0, 2).join(' ') : '?');
         marker.bindTooltip(shortName, {
           permanent: true,
           direction: 'bottom',
