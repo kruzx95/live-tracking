@@ -31,9 +31,9 @@ const ROLE_BADGE = {
 };
 
 const ALL_TABS = [
-  { key: MODES.RIDER,     label: '🚴 Rider',     id: 'tab-rider',     roles: ['rider', 'admin'] },
-  { key: MODES.SPECTATOR, label: '👁 Spectator', id: 'tab-spectator', roles: ['rider', 'spectator', 'admin'] },
-  { key: MODES.ORGANISER, label: '⚙️ Admin',     id: 'tab-organiser', roles: ['admin'] },
+  { key: MODES.RIDER,     label: '🚴 Rider',      shortLabel: '🚴', id: 'tab-rider',     roles: ['rider', 'admin'] },
+  { key: MODES.SPECTATOR, label: '👁 Spectator', shortLabel: '👁', id: 'tab-spectator', roles: ['rider', 'spectator', 'admin'] },
+  { key: MODES.ORGANISER, label: '⚙️ Admin',     shortLabel: '⚙️', id: 'tab-organiser', roles: ['admin'] },
 ];
 
 const DEMO_RIDERS = [
@@ -213,9 +213,9 @@ export default function MainApp({ userRole, onChangeRole }) {
           <span>Cyclo<span className="brand">Track</span></span>
         </div>
 
-        {/* Route indicator */}
+        {/* Route indicator — hidden on mobile */}
         {routeName && (
-          <div style={{
+          <div className="topbar-route-pill" style={{
             display: 'flex', alignItems: 'center', gap: 'var(--space-2)',
             padding: '4px var(--space-3)',
             background: 'var(--clr-brand-dim)',
@@ -232,23 +232,27 @@ export default function MainApp({ userRole, onChangeRole }) {
 
         {/* Live / Sync indicator */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--text-xs)' }}>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 4,
-            padding: '2px 8px',
-            background: isSyncConnected ? 'rgba(74,222,128,0.1)' : 'rgba(251,191,36,0.1)',
-            border: `1px solid ${isSyncConnected ? 'rgba(74,222,128,0.3)' : 'rgba(251,191,36,0.3)'}`,
-            borderRadius: 'var(--radius-full)',
-            color: isSyncConnected ? 'var(--clr-accent)' : 'var(--clr-warning)',
-            fontWeight: 600,
-          }}
+          <div
+            className="topbar-sync-badge"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              padding: '2px 8px',
+              background: isSyncConnected ? 'rgba(74,222,128,0.1)' : 'rgba(251,191,36,0.1)',
+              border: `1px solid ${isSyncConnected ? 'rgba(74,222,128,0.3)' : 'rgba(251,191,36,0.3)'}`,
+              borderRadius: 'var(--radius-full)',
+              color: isSyncConnected ? 'var(--clr-accent)' : 'var(--clr-warning)',
+              fontWeight: 600,
+              flexShrink: 0,
+            }}
             title={isSyncConnected ? 'Terhubung ke server sinkronisasi real-time lintas HP' : 'Mencoba terhubung ke server...'}
           >
             <div style={{
               width: 6, height: 6, borderRadius: '50%',
               background: isSyncConnected ? 'var(--clr-accent)' : 'var(--clr-warning)',
               animation: 'sos-active-pulse 1.5s ease-in-out infinite',
+              flexShrink: 0,
             }} />
-            <span>{isSyncConnected ? '⚡ Realtime Sync' : '🔄 Connecting...'}</span>
+            <span className="topbar-sync-text">{isSyncConnected ? '⚡ Realtime Sync' : '🔄 Connecting...'}</span>
           </div>
         </div>
 
@@ -271,15 +275,16 @@ export default function MainApp({ userRole, onChangeRole }) {
           {roleBadge.emoji} {roleBadge.label}
         </button>
 
-        {/* Mode Tabs — filtered by role & responsive for mobile */}
+        {/* Mode Tabs — desktop: teks penuh | mobile: emoji saja */}
         <nav className="topbar-mode-tabs" aria-label="Mode navigasi">
-          {allowedTabs.map(({ key, label, id }) => (
+          {allowedTabs.map(({ key, label, shortLabel, id }) => (
             <button
               key={key} id={id}
               className={`mode-tab ${mode === key ? 'active' : ''}`}
               onClick={() => setMode(key)}
             >
-              {label}
+              <span className="tab-full-label">{label}</span>
+              <span className="tab-short-label">{shortLabel}</span>
             </button>
           ))}
         </nav>
@@ -489,28 +494,38 @@ export default function MainApp({ userRole, onChangeRole }) {
 
       {/* ── Mobile Navigation Bar Bottom ── */}
       <nav className="mobile-bottom-bar" aria-label="Tampilan Mobile">
+        {/* Tombol 1: Peta */}
         <button
           id="btn-mobile-view-map"
           className={`mobile-view-btn ${mobileViewMode === 'map' ? 'active' : ''}`}
           onClick={() => handleSwitchMobileView('map')}
         >
-          🗺️ Peta Full
+          <span className="nav-icon">🗺️</span>
+          <span>Peta</span>
         </button>
 
+        {/* Tombol 2: Split (tengah — prominent) */}
         <button
           id="btn-mobile-view-split"
-          className={`mobile-view-btn ${mobileViewMode === 'split' ? 'active' : ''}`}
+          className={`mobile-view-btn nav-center ${mobileViewMode === 'split' ? 'active' : ''}`}
           onClick={() => handleSwitchMobileView('split')}
         >
-          ⚡ Split 50/50
+          <span className="nav-icon">⚡</span>
+          <span>Split</span>
         </button>
 
+        {/* Tombol 3: Panel */}
         <button
           id="btn-mobile-view-panel"
           className={`mobile-view-btn ${mobileViewMode === 'panel' ? 'active' : ''}`}
           onClick={() => handleSwitchMobileView('panel')}
         >
-          📋 {mode === MODES.ORGANISER ? 'Panel Admin' : mode === MODES.RIDER ? 'Panel Rider' : 'Leaderboard'}
+          <span className="nav-icon">
+            {mode === MODES.ORGANISER ? '⚙️' : mode === MODES.RIDER ? '🚴' : '📊'}
+          </span>
+          <span>
+            {mode === MODES.ORGANISER ? 'Admin' : mode === MODES.RIDER ? 'Rider' : 'Board'}
+          </span>
         </button>
       </nav>
     </>
