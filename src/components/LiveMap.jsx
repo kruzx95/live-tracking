@@ -137,25 +137,31 @@ function createRiderPopup(rider) {
     ? new Date(rider.lastSeen).toLocaleTimeString('id-ID')
     : '—';
 
+  const bibBadge = rider.bib
+    ? `<span style="background:rgba(0,198,255,0.15); color:#00c6ff; padding:1px 6px; border-radius:4px; font-weight:800; font-family:'JetBrains Mono',monospace; margin-right:6px;">#${rider.bib}</span>`
+    : '';
+
   return `
-    <div style="font-family:'Inter',sans-serif; min-width:180px; padding:4px;">
-      <div style="font-size:13px; font-weight:700; color:#e6edf3; margin-bottom:4px;">${rider.name}</div>
+    <div style="font-family:'Inter',sans-serif; min-width:190px; padding:4px;">
+      <div style="font-size:13px; font-weight:700; color:#e6edf3; margin-bottom:4px; display:flex; align-items:center;">
+        ${bibBadge}<span>${rider.name}</span>
+      </div>
       <div style="font-size:11px; color:#8b949e; margin-bottom:8px;">${statusLabel[rider.status] || rider.status}</div>
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:12px;">
         <div>
-          <div style="color:#484f58; font-size:10px; margin-bottom:2px;">KECEPATAN</div>
+          <div style="color:#8b949e; font-size:10px; margin-bottom:2px;">KECEPATAN</div>
           <div style="color:#00c6ff; font-weight:700; font-family:'JetBrains Mono',monospace;">${rider.speed ? rider.speed.toFixed(1) : '0.0'} km/h</div>
         </div>
         <div>
-          <div style="color:#484f58; font-size:10px; margin-bottom:2px;">JARAK TEMPUH</div>
+          <div style="color:#8b949e; font-size:10px; margin-bottom:2px;">JARAK TEMPUH</div>
           <div style="color:#4ade80; font-weight:700; font-family:'JetBrains Mono',monospace;">${rider.distanceTraveled ? rider.distanceTraveled.toFixed(2) : '0.00'} km</div>
         </div>
         <div>
-          <div style="color:#484f58; font-size:10px; margin-bottom:2px;">ELEVASI</div>
-          <div style="color:#e6edf3; font-weight:600; font-family:'JetBrains Mono',monospace;">${rider.ele || 0} m</div>
+          <div style="color:#8b949e; font-size:10px; margin-bottom:2px;">ELEVASI</div>
+          <div style="color:#e6edf3; font-weight:600; font-family:'JetBrains Mono',monospace;">${Math.round(rider.ele || 0)} m</div>
         </div>
         <div>
-          <div style="color:#484f58; font-size:10px; margin-bottom:2px;">UPDATE</div>
+          <div style="color:#8b949e; font-size:10px; margin-bottom:2px;">UPDATE</div>
           <div style="color:#8b949e; font-weight:500;">${lastSeen}</div>
         </div>
       </div>

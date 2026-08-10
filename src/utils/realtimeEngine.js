@@ -348,17 +348,22 @@ class RealtimeEngine extends EventEmitter {
 
   getRider(id) { return this.riders.get(id); }
 
-  updateRiderPosition(id, { lat, lon, ele = 0, speed = 0, heading = 0, accuracy = 0 }, broadcast = true) {
+  updateRiderPosition(id, { lat, lon, ele = 0, speed = 0, heading = 0, accuracy = 0, distanceTraveled: customDist }, broadcast = true) {
     const rider = this.riders.get(id);
     if (!rider) return;
 
     let distanceTraveled = rider.distanceTraveled;
     let isOffCourse = false;
 
-    if (this.route?.trackPoints?.length > 0) {
+    if (customDist !== undefined && customDist !== null) {
+      distanceTraveled = parseFloat(customDist.toFixed(3));
+    } else if (this.route?.trackPoints?.length > 0) {
       if (rider.lat !== null) {
         const delta = haversineDistance(rider.lat, rider.lon, lat, lon);
-        distanceTraveled = parseFloat((rider.distanceTraveled + delta).toFixed(3));
+        // Abaikan loncatan lokasi ekstrem (> 2km) agar jarak tempuh tidak meledak saat init / reconnect
+        if (delta < 2.0) {
+          distanceTraveled = parseFloat((rider.distanceTraveled + delta).toFixed(3));
+        }
       }
 
       // Deteksi off-course: periksa jarak ke titik rute terdekat tanpa loncat titik (sample 100 max)
@@ -565,6 +570,7 @@ class RealtimeEngine extends EventEmitter {
         speed: speedKmh + (Math.random() - 0.5) * 3,
         heading,
         accuracy: 5,
+        distanceTraveled: currentMeters / 1000,
       }, true);
     }, UPDATE_INTERVAL);
 
