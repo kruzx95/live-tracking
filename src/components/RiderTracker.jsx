@@ -89,8 +89,36 @@ export default function RiderTracker({ route, riderId, riderName, onRiderChange 
       }
     } catch (e) {}
 
+    const unsubRemoved = engine.on('rider:removed', (removedId) => {
+      if (removedId === riderIdRef.current) {
+        setIsTracking(false);
+        setGpsStatus('idle');
+        engine.stopLiveGPS();
+        engine.releaseWakeLock();
+        try {
+          localStorage.removeItem('cyclotrack_rider_name');
+          localStorage.removeItem('cyclotrack_rider_id');
+          localStorage.removeItem('cyclotrack_device_id');
+        } catch (e) {}
+        setHasRegistered(false);
+      }
+    });
+
+    const unsubCleared = engine.on('riders:cleared', () => {
+      setIsTracking(false);
+      setGpsStatus('idle');
+      engine.stopLiveGPS();
+      engine.releaseWakeLock();
+      try {
+        localStorage.removeItem('cyclotrack_rider_name');
+        localStorage.removeItem('cyclotrack_rider_id');
+        localStorage.removeItem('cyclotrack_device_id');
+      } catch (e) {}
+      setHasRegistered(false);
+    });
+
     return () => {
-      unsubMove(); unsubGPS(); unsubGPSErr(); unsubWL(); unsubWLR();
+      unsubMove(); unsubGPS(); unsubGPSErr(); unsubWL(); unsubWLR(); unsubRemoved(); unsubCleared();
       clearInterval(queueInterval);
     };
   }, [onRiderChange]);

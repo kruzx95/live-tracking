@@ -499,7 +499,7 @@ export default function MainApp({ userRole, onChangeRole }) {
                       style={{ background: 'none', border: 'none', color: 'var(--clr-danger)', fontSize: 'var(--text-xs)', cursor: 'pointer', fontWeight: 600 }}
                       onClick={() => {
                         if (window.confirm('Bersihkan semua peserta dari leaderboard?')) {
-                          riders.forEach((r) => engine.removeRider(r.id));
+                          engine.clearAllRiders(true);
                           addToast('Semua peserta telah dibersihkan', 'info', '🧹');
                         }
                       }}

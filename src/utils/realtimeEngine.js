@@ -198,8 +198,17 @@ class RealtimeEngine extends EventEmitter {
             clearInterval(this._simTimers.get(data.riderId));
             this._simTimers.delete(data.riderId);
           }
+          this.emit('rider:removed', data.riderId);
           this.emit('riders:updated', this._getRidersArray());
         }
+        break;
+
+      case 'CLEAR_ALL_RIDERS':
+        this.stopAllSimulators();
+        this.riders.clear();
+        this._deletedRiderIds.clear();
+        this.emit('riders:cleared');
+        this.emit('riders:updated', []);
         break;
 
       case 'REQUEST_SYNC':
@@ -410,10 +419,23 @@ class RealtimeEngine extends EventEmitter {
     this._stopSimulator(id);
     this._deletedRiderIds.add(id);
     this.riders.delete(id);
+    this.emit('rider:removed', id);
     this.emit('riders:updated', this._getRidersArray());
 
     if (broadcast) {
       this._publishMessage({ type: 'RIDER_REMOVE', riderId: id });
+    }
+  }
+
+  clearAllRiders(broadcast = true) {
+    this.stopAllSimulators();
+    this.riders.clear();
+    this._deletedRiderIds.clear();
+    this.emit('riders:cleared');
+    this.emit('riders:updated', []);
+
+    if (broadcast) {
+      this._publishMessage({ type: 'CLEAR_ALL_RIDERS' });
     }
   }
 
