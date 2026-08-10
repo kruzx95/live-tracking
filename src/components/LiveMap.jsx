@@ -223,6 +223,11 @@ export default function LiveMap({ riders = [], route = null, focusedRiderId = nu
 
     mapInstanceRef.current = map;
 
+    // Saat pengguna mulai menggeser peta secara manual, otomatis lepas kunci fokus rider!
+    map.on('dragstart', () => {
+      onRiderClick?.(null);
+    });
+
     return () => {
       resizeObserver.disconnect();
       map.remove();
@@ -385,24 +390,64 @@ export default function LiveMap({ riders = [], route = null, focusedRiderId = nu
     });
   }, [riders, onRiderClick]);
 
-  // ── Focus on Rider ────────────────────────────────
+  // Ref ke riders untuk akses data terbaru tanpa merender ulang effect
+  const ridersRef = useRef(riders);
+  useEffect(() => {
+    ridersRef.current = riders;
+  }, [riders]);
+
+  // ── Focus on Rider (Hanya dipanggil sekali saat focusedRiderId berubah) ──
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map || !focusedRiderId) return;
 
-    const rider = riders.find((r) => r.id === focusedRiderId);
+    const rider = ridersRef.current.find((r) => r.id === focusedRiderId);
     if (rider?.lat != null) {
       map.setView([rider.lat, rider.lon], Math.max(map.getZoom(), 15), {
         animate: true,
         duration: 0.8,
       });
     }
-  }, [focusedRiderId, riders]);
+  }, [focusedRiderId]);
+
+  const focusedRider = focusedRiderId ? riders.find((r) => r.id === focusedRiderId) : null;
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       {/* Map Container */}
       <div id="live-map" ref={mapRef} style={{ width: '100%', height: '100%' }} />
+
+      {/* Floating Badge Indikator Fokus Kamera (Top Center) */}
+      {focusedRider && (
+        <div
+          onClick={() => onRiderClick?.(null)}
+          style={{
+            position: 'absolute',
+            top: 14,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 450,
+            background: 'rgba(13, 17, 23, 0.94)',
+            border: '1px solid var(--clr-brand)',
+            borderRadius: 'var(--radius-full)',
+            padding: '6px 14px',
+            color: 'var(--clr-brand)',
+            fontSize: 'var(--text-xs)',
+            fontWeight: 700,
+            cursor: 'pointer',
+            boxShadow: 'var(--shadow-lg)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            backdropFilter: 'blur(8px)',
+            animation: 'fade-in 0.2s ease',
+          }}
+          title="Klik untuk melepas fokus kamera"
+        >
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--clr-brand)', animation: 'sos-active-pulse 1.5s ease-in-out infinite' }} />
+          <span>📍 Kamera Terkunci: <strong>{focusedRider.name}</strong> (Klik untuk Lepas ✖)</span>
+        </div>
+      )}
 
       {/* Button Fit Rute Manual (Pojok Kanan Atas) */}
       {route?.trackPoints?.length > 0 && (

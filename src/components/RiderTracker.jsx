@@ -68,11 +68,32 @@ export default function RiderTracker({ route, riderId, riderName, onRiderChange 
       setOfflineCount(count);
     }, 5000);
 
+    // Restore pendaftaran & status tracking dari localStorage
+    try {
+      const savedName = localStorage.getItem('cyclotrack_rider_name');
+      const savedId   = localStorage.getItem('cyclotrack_rider_id');
+      if (savedName && savedId) {
+        setName(savedName);
+        riderIdRef.current = savedId;
+        setHasRegistered(true);
+
+        // Daftarkan ke engine jika belum terdaftar
+        engine.addRider(savedId, savedName, colorRef.current);
+        onRiderChange?.({ id: savedId, name: savedName, color: colorRef.current });
+
+        // Jika GPS watcher sedang berjalan di engine, atur status tracking
+        if (engine._geoWatchId !== null) {
+          setIsTracking(true);
+          setGpsStatus('good');
+        }
+      }
+    } catch (e) {}
+
     return () => {
       unsubMove(); unsubGPS(); unsubGPSErr(); unsubWL(); unsubWLR();
       clearInterval(queueInterval);
     };
-  }, []);
+  }, [onRiderChange]);
 
   // ── Register rider ke engine ──────────────────────
   const registerRider = useCallback(() => {
@@ -81,6 +102,11 @@ export default function RiderTracker({ route, riderId, riderName, onRiderChange 
     engine.addRider(id, name.trim(), colorRef.current);
     onRiderChange?.({ id, name: name.trim(), color: colorRef.current });
     setHasRegistered(true);
+
+    try {
+      localStorage.setItem('cyclotrack_rider_name', name.trim());
+      localStorage.setItem('cyclotrack_rider_id', id);
+    } catch (e) {}
   }, [name, onRiderChange]);
 
   // ── Start/Stop Tracking ───────────────────────────
@@ -183,6 +209,35 @@ export default function RiderTracker({ route, riderId, riderName, onRiderChange 
   // ── Render: Tracker Panel ─────────────────────────
   return (
     <div className="panel-body">
+      {/* Header Rider Registered Info */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: 'var(--space-2) var(--space-3)',
+        background: 'var(--clr-bg-elevated)', borderRadius: 'var(--radius-sm)',
+        border: '1px solid var(--clr-border)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+          <div style={{ width: 8, height: 8, borderRadius: '50%', background: colorRef.current }} />
+          <span style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--clr-brand)' }}>{name}</span>
+        </div>
+        <button
+          style={{ background: 'none', border: 'none', color: 'var(--clr-text-muted)', fontSize: '10px', cursor: 'pointer', fontWeight: 600 }}
+          onClick={() => {
+            if (isTracking) {
+              if (!window.confirm('Tracking GPS sedang berjalan. Apakah Anda yakin ingin mengganti nama?')) return;
+              handleStopTracking();
+            }
+            try {
+              localStorage.removeItem('cyclotrack_rider_name');
+              localStorage.removeItem('cyclotrack_rider_id');
+            } catch (e) {}
+            setHasRegistered(false);
+          }}
+        >
+          ✏️ Edit Nama
+        </button>
+      </div>
+
       {/* GPS Status Bar */}
       <div className={`gps-signal ${gpsStatus === 'good' ? 'good' : gpsStatus === 'weak' ? 'weak' : gpsStatus === 'idle' ? '' : 'no-signal'}`}>
         <span>{gpsStatus === 'good' ? '📡' : gpsStatus === 'searching' ? '🔄' : gpsStatus === 'weak' ? '📶' : '❌'}</span>
