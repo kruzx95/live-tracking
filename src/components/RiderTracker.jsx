@@ -227,14 +227,21 @@ export default function RiderTracker({ route, riderId, riderName, onRiderChange 
               if (!window.confirm('Tracking GPS sedang berjalan. Apakah Anda yakin ingin mengganti nama?')) return;
               handleStopTracking();
             }
+            // Hapus rider lama dari engine & broadcast pesan RIDER_REMOVE ke semua HP penonton & admin!
+            const oldId = riderIdRef.current;
+            if (oldId) {
+              engine.removeRider(oldId, true);
+            }
             try {
               localStorage.removeItem('cyclotrack_rider_name');
               localStorage.removeItem('cyclotrack_rider_id');
+              localStorage.removeItem('cyclotrack_device_id');
             } catch (e) {}
+            riderIdRef.current = `rider_${Math.random().toString(36).substring(2, 10)}`;
             setHasRegistered(false);
           }}
         >
-          ✏️ Edit Nama
+          ✏️ Edit Nama / Reset Pendaftaran
         </button>
       </div>
 
