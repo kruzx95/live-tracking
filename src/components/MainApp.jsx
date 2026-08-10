@@ -8,6 +8,7 @@ import LiveMap from './LiveMap';
 import RiderTracker from './RiderTracker';
 import SpectatorDashboard from './SpectatorDashboard';
 import ReplayControls from './ReplayControls';
+import CycloTrackLogo from './CycloTrackLogo';
 import { engine } from '../utils/realtimeEngine';
 import { parseGPX, generateDemoRoute } from '../utils/gpxParser';
 
@@ -250,7 +251,7 @@ export default function MainApp({ userRole, onChangeRole }) {
       {/* ── Topbar ── */}
       <header className="topbar">
         <div className="topbar-logo">
-          <div className="logo-icon">🚴</div>
+          <CycloTrackLogo size={32} />
           <span>Cyclo<span className="brand">Track</span></span>
         </div>
 

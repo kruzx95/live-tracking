@@ -9,6 +9,7 @@
 
 import { useState } from 'react';
 import PWAInstallBanner from './PWAInstallBanner';
+import CycloTrackLogo from './CycloTrackLogo';
 
 const ADMIN_PIN = '1234'; // PIN default panitia
 
@@ -60,16 +61,8 @@ export default function RoleGate({ onSelectRole }) {
 
       {/* Header / Logo */}
       <div style={{ textAlign: 'center', marginBottom: 'var(--space-6)', animation: 'fade-in 0.5s ease' }}>
-        <div style={{
-          width: 64, height: 64,
-          background: 'linear-gradient(135deg, #0072ff, #00c6ff)',
-          borderRadius: 18,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '2.2rem',
-          margin: '0 auto var(--space-3)',
-          boxShadow: '0 0 32px rgba(0,198,255,0.35)',
-        }}>
-          🚴
+        <div style={{ margin: '0 auto var(--space-3)', display: 'flex', justifyContent: 'center' }}>
+          <CycloTrackLogo size={72} />
         </div>
         <h1 style={{
           fontFamily: 'var(--font-display)',

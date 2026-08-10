@@ -235,6 +235,8 @@ export default function LiveMap({ riders = [], route = null, focusedRiderId = nu
     };
   }, []);
 
+  const loadedRouteKeyRef = useRef(null);
+
   // ── Render Rute GPX ──────────────────────────────
   useEffect(() => {
     const map = mapInstanceRef.current;
@@ -302,10 +304,14 @@ export default function LiveMap({ riders = [], route = null, focusedRiderId = nu
       }).addTo(layerGroup).bindPopup('<b>🏁 Titik Finish Rute</b>');
     }
 
-    // Auto fit bounds setelah rute dimuat
-    setTimeout(() => {
-      fitRouteToBounds();
-    }, 150);
+    // Auto fit bounds HANYA sekali saat rute baru benar-benar dimuat pertama kali
+    const routeKey = `${route.name}_${route.stats?.totalDistance}_${route.trackPoints?.length}`;
+    if (loadedRouteKeyRef.current !== routeKey) {
+      loadedRouteKeyRef.current = routeKey;
+      setTimeout(() => {
+        fitRouteToBounds();
+      }, 150);
+    }
 
   }, [route, fitRouteToBounds]);
 
