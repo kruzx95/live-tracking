@@ -516,6 +516,47 @@ h1, h2, h3, h4 {
   color: var(--clr-brand);
 }
 
+/* ── Running Text (Marquee) untuk Nama Rute GPX ── */
+.topbar-route-pill {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 4px 12px;
+  background: var(--clr-brand-dim);
+  border: 1px solid var(--clr-border-glow);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  color: var(--clr-brand);
+  font-weight: 600;
+  max-width: 170px;
+  overflow: hidden;
+  flex-shrink: 0;
+  cursor: default;
+}
+
+.route-name-container {
+  overflow: hidden;
+  white-space: nowrap;
+  position: relative;
+  display: flex;
+}
+
+.route-name-text {
+  display: inline-block;
+  white-space: nowrap;
+  animation: route-marquee 12s linear infinite;
+  will-change: transform;
+}
+
+.topbar-route-pill:hover .route-name-text {
+  animation-play-state: paused; /* Pause running text saat kursor di-hover */
+}
+
+@keyframes route-marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+
 .topbar-spacer { flex: 1; }
 
 .topbar-mode-tabs {

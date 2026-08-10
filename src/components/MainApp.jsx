@@ -94,19 +94,32 @@ export default function MainApp({ userRole, onChangeRole }) {
     const unsubRoute  = engine.on('route:loaded', (r) => {
       setRoute(r);
       setRouteName(r.name);
-      addToast(`✅ Rute "${r.name}" terhubung ke seluruh HP rider (${r.stats.totalDistance} km)`, 'success', '📍');
+      addToast(`🔔 Rute Event Diterima: "${r.name}" (${r.stats.totalDistance} km)`, 'success', '📍');
+      // Simpan ke localStorage HP agar rute tetap ada meskipun HP rider kehilangan sinyal!
+      try { localStorage.setItem('cyclotrack_cached_route', JSON.stringify(r)); } catch (e) {}
     });
     const unsubSyncC  = engine.on('sync:connected', () => setIsSyncConnected(true));
     const unsubSyncD  = engine.on('sync:disconnected', () => setIsSyncConnected(false));
     return () => { unsubRiders(); unsubSOS(); unsubRoute(); unsubSyncC(); unsubSyncD(); };
   }, [addToast]);
 
-  // ── Load demo route saat pertama kali ────────────
+  // ── Load rute tersimpan (offline-first) atau rute awal ────────────
   useEffect(() => {
-    const demo = generateDemoRoute({ lat: -7.2575, lon: 112.7521 }, 8, 300);
+    try {
+      const saved = localStorage.getItem('cyclotrack_cached_route');
+      if (saved) {
+        const parsedSaved = JSON.parse(saved);
+        setRoute(parsedSaved);
+        setRouteName(parsedSaved.name);
+        engine.setRoute(parsedSaved, false);
+        return;
+      }
+    } catch (e) {}
+
+    const demo = generateDemoRoute();
     setRoute(demo);
     setRouteName(demo.name);
-    engine.setRoute(demo);
+    engine.setRoute(demo, false);
   }, []);
 
   // ── GPX File Upload ───────────────────────────────
@@ -121,12 +134,25 @@ export default function MainApp({ userRole, onChangeRole }) {
       setRoute(parsed);
       setRouteName(parsed.name);
       engine.setRoute(parsed);
+
+      addToast(`Rute "${parsed.name}" (${parsed.stats.totalDistance} km) berhasil diupload & siap disimulasikan!`, 'success', '📍');
+
+      // Jika simulator sedang aktif saat GPX di-upload, restart simulator pada rute GPX baru ini
+      if (isSimRunning) {
+        engine.stopAllSimulators();
+        riders.forEach((r) => engine.removeRider(r.id));
+        DEMO_RIDERS.forEach((dr) => {
+          engine.addRider(dr.id, dr.name, dr.color);
+          engine.startSimulator(dr.id, dr.speed, dr.startProgress);
+        });
+        addToast(`Simulator diperbarui ke rute "${parsed.name}"`, 'info', '🚀');
+      }
     } catch (err) {
       addToast(`Gagal membaca file GPX: ${err.message}`, 'error', '❌');
     } finally {
       setGpxLoading(false);
     }
-  }, [addToast]);
+  }, [addToast, isSimRunning, riders]);
 
   const handleDropzoneDrop = useCallback((e) => {
     e.preventDefault();
@@ -215,16 +241,11 @@ export default function MainApp({ userRole, onChangeRole }) {
 
         {/* Route indicator — hidden on mobile */}
         {routeName && (
-          <div className="topbar-route-pill" style={{
-            display: 'flex', alignItems: 'center', gap: 'var(--space-2)',
-            padding: '4px var(--space-3)',
-            background: 'var(--clr-brand-dim)',
-            border: '1px solid var(--clr-border-glow)',
-            borderRadius: 'var(--radius-full)',
-            fontSize: 'var(--text-xs)', color: 'var(--clr-brand)', fontWeight: 600,
-            maxWidth: 150, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
-          }}>
-            📍 {routeName}
+          <div className="topbar-route-pill" title={`Rute Aktif: ${routeName}`}>
+            <span style={{ flexShrink: 0 }}>📍</span>
+            <div className="route-name-container">
+              <span className="route-name-text">{routeName} &nbsp; • &nbsp; {routeName} &nbsp; • &nbsp;</span>
+            </div>
           </div>
         )}
 
