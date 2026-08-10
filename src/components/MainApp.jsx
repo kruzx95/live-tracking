@@ -198,6 +198,7 @@ export default function MainApp({ userRole, onChangeRole }) {
       engine.startSimulator(dr.id, dr.speed, dr.startProgress);
     });
     setSimRunning(true);
+    try { localStorage.setItem('cyclotrack_sim_running', 'true'); } catch (e) {}
     addToast(`Simulator dimulai dengan ${DEMO_RIDERS.length} rider`, 'success', '🚀');
   }, [route, riders, addToast]);
 
@@ -205,6 +206,7 @@ export default function MainApp({ userRole, onChangeRole }) {
     engine.stopAllSimulators();
     DEMO_RIDERS.forEach((dr) => engine.removeRider(dr.id));
     setSimRunning(false);
+    try { localStorage.setItem('cyclotrack_sim_running', 'false'); } catch (e) {}
     addToast('Simulator dihentikan', 'info', '⏹');
   }, [addToast]);
 
