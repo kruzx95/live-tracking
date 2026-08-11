@@ -9,6 +9,7 @@ import RiderTracker from './RiderTracker';
 import SpectatorDashboard from './SpectatorDashboard';
 import ReplayControls from './ReplayControls';
 import CycloTrackLogo from './CycloTrackLogo';
+import QRCodeModal from './QRCodeModal';
 import { engine } from '../utils/realtimeEngine';
 import { parseGPX, generateDemoRoute } from '../utils/gpxParser';
 
@@ -78,6 +79,7 @@ export default function MainApp({ userRole, onChangeRole }) {
   const [inputBib, setInputBib]       = useState('');
   const [inputName, setInputName]     = useState('');
   const [inputPin, setInputPin]       = useState('1234');
+  const [showQRModal, setShowQRModal] = useState(false);
   const fileInputRef = useRef(null);
 
   const lastNotifiedRouteRef = useRef(null);
@@ -312,6 +314,27 @@ export default function MainApp({ userRole, onChangeRole }) {
             }} />
             <span className="topbar-sync-text">{isSyncConnected ? '⚡ Realtime Sync' : '🔄 Connecting...'}</span>
           </div>
+
+          {/* Tombol QR Code & Bagikan Link */}
+          <button
+            onClick={() => setShowQRModal(true)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              padding: '3px 10px',
+              background: 'linear-gradient(135deg, rgba(0,114,255,0.25), rgba(0,198,255,0.25))',
+              border: '1px solid rgba(0,198,255,0.45)',
+              borderRadius: 'var(--radius-full)',
+              color: 'var(--clr-brand)',
+              fontSize: 'var(--text-xs)',
+              fontWeight: 700,
+              cursor: 'pointer',
+              flexShrink: 0,
+              fontFamily: 'var(--font-body)',
+            }}
+            title="Tampilkan QR Code & Bagikan Link Live Event"
+          >
+            📱 Bagikan
+          </button>
         </div>
 
         {/* Role Badge */}
@@ -420,6 +443,7 @@ export default function MainApp({ userRole, onChangeRole }) {
                 route={route}
                 focusedRiderId={focusedRiderId}
                 onFocusRider={handleFocusRider}
+                onShareLink={() => setShowQRModal(true)}
               />
               <div className="divider" />
               <ReplayControls onReplayFrameUpdate={handleReplayFrameUpdate} />
@@ -429,6 +453,21 @@ export default function MainApp({ userRole, onChangeRole }) {
           {/* Mode: ORGANISER (Admin only) */}
           {mode === MODES.ORGANISER && (
             <div className="panel-body">
+              {/* Tombol QR & Share Admin */}
+              <button
+                onClick={() => setShowQRModal(true)}
+                className="btn btn-primary btn-block"
+                style={{
+                  marginBottom: 'var(--space-4)',
+                  background: 'linear-gradient(135deg, #0072ff, #00c6ff)',
+                  boxShadow: '0 4px 14px rgba(0, 198, 255, 0.3)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  fontWeight: 800,
+                }}
+              >
+                📱 QR Code & Bagikan Link Live Event
+              </button>
+
               {/* Event Replay Player & Recording */}
               <ReplayControls onReplayFrameUpdate={handleReplayFrameUpdate} />
               <div className="divider" />
@@ -773,6 +812,15 @@ export default function MainApp({ userRole, onChangeRole }) {
           </span>
         </button>
       </nav>
+
+      {/* Modal QR Code & Quick Share */}
+      <QRCodeModal
+        isOpen={showQRModal}
+        onClose={() => setShowQRModal(false)}
+        eventUrl="https://cyclo-trackv1.vercel.app"
+        routeName={routeName}
+        onToast={addToast}
+      />
     </>
   );
 }

@@ -42,7 +42,7 @@ function formatLastSeen(ts) {
   return `${Math.floor(diff / 3600000)}j lalu`;
 }
 
-export default function SpectatorDashboard({ riders = [], route = null, focusedRiderId = null, onFocusRider }) {
+export default function SpectatorDashboard({ riders = [], route = null, focusedRiderId = null, onFocusRider, onShareLink }) {
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchQuery, setSearchQuery]   = useState('');
 
@@ -86,6 +86,30 @@ export default function SpectatorDashboard({ riders = [], route = null, focusedR
 
   return (
     <div className="panel-body" style={{ padding: 0, gap: 0 }}>
+
+      {/* Tombol Quick Share Penonton */}
+      {onShareLink && (
+        <div style={{ padding: 'var(--space-3) var(--space-5) 0' }}>
+          <button
+            onClick={onShareLink}
+            style={{
+              width: '100%',
+              padding: 'var(--space-2) var(--space-4)',
+              background: 'linear-gradient(135deg, rgba(0, 114, 255, 0.15), rgba(0, 198, 255, 0.15))',
+              border: '1px solid rgba(0, 198, 255, 0.4)',
+              borderRadius: 'var(--radius-md)',
+              color: 'var(--clr-brand)',
+              fontSize: 'var(--text-xs)',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              transition: 'all 0.2s ease',
+            }}
+          >
+            📱 Bagikan Link Live Event & QR Code
+          </button>
+        </div>
+      )}
 
       {/* SOS Alert Banner */}
       {sosRiders.length > 0 && (
