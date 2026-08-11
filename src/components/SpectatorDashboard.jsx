@@ -273,12 +273,36 @@ export default function SpectatorDashboard({ riders = [], route = null, focusedR
                     </div>
                     <div style={{ marginTop: '2px', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
                       <span className={`badge ${cfg.badge}`} style={{ fontSize: '9px' }}>
-                        {cfg.label}
+                        {cfg.emoji} {cfg.label}
                       </span>
                       <span style={{ fontSize: '10px', color: 'var(--clr-text-muted)' }}>
-                        {formatLastSeen(rider.lastSeen)}
+                        {rider.speed?.toFixed(1) || '0.0'} km/h
                       </span>
                     </div>
+
+                    {/* Checkpoint Passed Badges */}
+                    {rider.checkpointsPassed && Object.keys(rider.checkpointsPassed).length > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+                        {Object.entries(rider.checkpointsPassed).map(([cpName, cpTime]) => (
+                          <span
+                            key={cpName}
+                            style={{
+                              background: 'rgba(0, 229, 255, 0.12)',
+                              border: '1px solid rgba(0, 229, 255, 0.35)',
+                              color: '#00e5ff',
+                              fontSize: '9px',
+                              fontWeight: 700,
+                              padding: '1px 5px',
+                              borderRadius: '4px',
+                              fontFamily: 'var(--font-mono)',
+                            }}
+                            title={`Lolos ${cpName} pada pukul ${cpTime}`}
+                          >
+                            🚩 {cpName.split(' ')[0]} {cpTime}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* Speed */}

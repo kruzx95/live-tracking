@@ -117,7 +117,10 @@ export default function MainApp({ userRole, onChangeRole }) {
     const unsubSyncC  = engine.on('sync:connected', () => setIsSyncConnected(true));
     const unsubSyncD  = engine.on('sync:disconnected', () => setIsSyncConnected(false));
     const unsubPart   = engine.on('participants:updated', (list) => setOfficialParticipants([...list]));
-    return () => { unsubRiders(); unsubSOS(); unsubRoute(); unsubSyncC(); unsubSyncD(); unsubPart(); };
+    const unsubCP     = engine.on('checkpoint:passed', ({ rider, checkpoint }) => {
+      addToast(`🚩 ${rider.name} baru saja melewati Checkpoint ${checkpoint.name} (${checkpoint.time})!`, 'info', '🏁');
+    });
+    return () => { unsubRiders(); unsubSOS(); unsubRoute(); unsubSyncC(); unsubSyncD(); unsubPart(); unsubCP(); };
   }, [addToast]);
 
   const [isSimRunning, setSimRunning] = useState(() => {

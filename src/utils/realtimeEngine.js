@@ -335,6 +335,7 @@ class RealtimeEngine extends EventEmitter {
       lastSeen: Date.now(),
       isOffCourse: false,
       isSOS: false,
+      checkpointsPassed: existing?.checkpointsPassed || {},
       path: [],
     };
     this.riders.set(id, rider);
@@ -377,6 +378,24 @@ class RealtimeEngine extends EventEmitter {
       isOffCourse = minDistToRoute > 0.2; // 200 meter dari rute
     }
 
+    // Deteksi Geo-Fencing Checkpoint / Water Station (Radius 150m)
+    const checkpointsPassed = { ...(rider.checkpointsPassed || {}) };
+    let newlyPassedCP = null;
+
+    if (this.route?.waypoints?.length > 0) {
+      this.route.waypoints.forEach((wpt) => {
+        const wpName = wpt.name || 'Checkpoint';
+        if (!checkpointsPassed[wpName]) {
+          const distToWpt = haversineDistance(lat, lon, wpt.lat, wpt.lon);
+          if (distToWpt <= 0.15) { // Radius 150 meter dari Checkpoint
+            const timeStr = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+            checkpointsPassed[wpName] = timeStr;
+            newlyPassedCP = { name: wpName, time: timeStr, type: wpt.type };
+          }
+        }
+      });
+    }
+
     const distanceToFinish = this.route
       ? Math.max(0, this.route.stats.totalDistance - distanceTraveled)
       : 0;
@@ -394,6 +413,7 @@ class RealtimeEngine extends EventEmitter {
       distanceToFinish,
       isOffCourse,
       status,
+      checkpointsPassed,
       lastSeen: Date.now(),
       path,
     };
@@ -401,6 +421,10 @@ class RealtimeEngine extends EventEmitter {
     this.riders.set(id, updated);
     this.emit('rider:moved', updated);
     this.emit('riders:updated', this._getRidersArray());
+
+    if (newlyPassedCP) {
+      this.emit('checkpoint:passed', { rider: updated, checkpoint: newlyPassedCP });
+    }
 
     // Broadcast ke perangkat lain
     if (broadcast) {
