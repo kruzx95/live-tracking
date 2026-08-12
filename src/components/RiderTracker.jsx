@@ -8,6 +8,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { engine, TRANSMISSION_INTERVAL } from '../utils/realtimeEngine';
 import { offlineQueue } from '../utils/offlineQueue';
 import { isOffCourse } from '../utils/gpxParser';
+import BackgroundGPSGuideModal from './BackgroundGPSGuideModal';
 
 const RIDER_COLORS = [
   '#00c6ff', '#4ade80', '#fbbf24', '#f97316',
@@ -32,6 +33,7 @@ export default function RiderTracker({ route, riderId, riderName, onRiderChange 
   const [name, setName]                   = useState(riderName || '');
   const [authError, setAuthError]         = useState('');
   const [hasRegistered, setHasRegistered] = useState(false);
+  const [showGuideModal, setShowGuideModal] = useState(false);
 
   const riderIdRef = useRef(riderId || `rider_${Date.now()}`);
   const colorRef   = useRef(RIDER_COLORS[Math.floor(Math.random() * RIDER_COLORS.length)]);
@@ -292,6 +294,30 @@ export default function RiderTracker({ route, riderId, riderName, onRiderChange 
         }}>
           💡 <strong>Belum menerima Nomor Dada & PIN?</strong> Hubungi Panitia Event di meja pendaftaran untuk mendapatkan Nomor Dada resmi Anda.
         </div>
+
+        <button
+          onClick={() => setShowGuideModal(true)}
+          style={{
+            width: '100%',
+            padding: 'var(--space-2) var(--space-3)',
+            background: 'rgba(0, 198, 255, 0.1)',
+            border: '1px solid rgba(0, 198, 255, 0.3)',
+            borderRadius: 'var(--radius-md)',
+            color: 'var(--clr-brand)',
+            fontSize: 'var(--text-xs)',
+            fontWeight: 700,
+            cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          }}
+        >
+          🔋 Tips GPS Layar Mati (Kantong Jersey)
+        </button>
+
+        {/* Modal Panduan GPS Background (Login View) */}
+        <BackgroundGPSGuideModal
+          isOpen={showGuideModal}
+          onClose={() => setShowGuideModal(false)}
+        />
       </div>
     );
   }
@@ -347,6 +373,26 @@ export default function RiderTracker({ route, riderId, riderName, onRiderChange 
           </span>
         )}
       </div>
+
+      {/* Tombol Tips Background GPS */}
+      <button
+        onClick={() => setShowGuideModal(true)}
+        style={{
+          width: '100%',
+          padding: 'var(--space-2) var(--space-3)',
+          background: 'rgba(0, 198, 255, 0.1)',
+          border: '1px solid rgba(0, 198, 255, 0.3)',
+          borderRadius: 'var(--radius-md)',
+          color: 'var(--clr-brand)',
+          fontSize: 'var(--text-xs)',
+          fontWeight: 700,
+          cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          marginBottom: 'var(--space-4)',
+        }}
+      >
+        🔋 Tips GPS Layar Mati (Kantong Jersey)
+      </button>
 
       {/* Off-Course Alert */}
       {offCourseAlert && (
