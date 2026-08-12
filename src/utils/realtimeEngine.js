@@ -136,7 +136,7 @@ class RealtimeEngine extends EventEmitter {
   }
 
   // ── Publish Message ke Lintas Perangkat ───────────
-  _publishMessage(data) {
+  _publishMessage(data, options = {}) {
     const payloadWithSender = {
       ...data,
       senderId: this._clientId,
@@ -150,7 +150,7 @@ class RealtimeEngine extends EventEmitter {
 
     // Publish ke MQTT Broker untuk HP/Desktop lain di internet
     if (this._mqttClient && this.isSyncConnected) {
-      try { this._mqttClient.publish(MQTT_TOPIC, jsonStr); } catch (e) {}
+      try { this._mqttClient.publish(MQTT_TOPIC, jsonStr, options); } catch (e) {}
     }
   }
 
@@ -521,7 +521,7 @@ class RealtimeEngine extends EventEmitter {
   // ── Admin PIN Management (Synced via MQTT) ─────────
   setAdminPin(newPin) {
     try { localStorage.setItem('cyclotrack_admin_pin', newPin); } catch (e) {}
-    this._publishMessage({ type: 'ADMIN_PIN_UPDATE', pin: newPin });
+    this._publishMessage({ type: 'ADMIN_PIN_UPDATE', pin: newPin }, { retain: true });
     this.emit('admin_pin:updated', newPin);
   }
 

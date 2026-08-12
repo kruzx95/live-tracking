@@ -7,9 +7,10 @@
  * 3. 🔐 Panitia / Admin (Dilindungi PIN)
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import PWAInstallBanner from './PWAInstallBanner';
 import CycloTrackLogo from './CycloTrackLogo';
+import { engine } from '../utils/realtimeEngine';
 
 // PIN admin disimpan di localStorage — default '1234' jika belum pernah diubah
 function getAdminPin() {
@@ -25,10 +26,20 @@ export default function RoleGate({ onSelectRole }) {
   const [pin, setPin]                   = useState('');
   const [pinError, setPinError]         = useState(false);
   const [pinShake, setPinShake]         = useState(false);
+  const [currentAdminPin, setCurrentAdminPin] = useState(() => getAdminPin());
+
+  // Listen sync PIN real-time via MQTT lintas HP/device
+  useEffect(() => {
+    const unsub = engine.on('admin_pin:updated', (newPin) => {
+      setCurrentAdminPin(newPin);
+    });
+    return () => unsub();
+  }, []);
 
   const handleAdminSubmit = (e) => {
     e.preventDefault();
-    if (pin === getAdminPin()) {
+    const validPin = currentAdminPin || getAdminPin();
+    if (pin === validPin) {
       onSelectRole('admin');
     } else {
       setPinError(true);
@@ -290,7 +301,7 @@ export default function RoleGate({ onSelectRole }) {
                 inputMode="numeric"
                 pattern="[0-9]*"
                 maxLength={6}
-                placeholder={localStorage.getItem('cyclotrack_admin_pin') ? 'Masukkan PIN Admin' : 'PIN (Default: 1234)'}
+                placeholder={currentAdminPin !== '1234' ? 'Masukkan PIN Admin' : 'PIN (Default: 1234)'}
                 value={pin}
                 onChange={(e) => { setPin(e.target.value); setPinError(false); }}
                 autoFocus
@@ -305,7 +316,7 @@ export default function RoleGate({ onSelectRole }) {
               />
               {pinError && (
                 <div style={{ color: 'var(--clr-danger)', fontSize: 'var(--text-xs)', fontWeight: 600 }}>
-                  ❌ PIN salah.{!localStorage.getItem('cyclotrack_admin_pin') && ' (Default: 1234)'} Coba lagi.
+                  ❌ PIN salah.{currentAdminPin === '1234' && ' (Default: 1234)'} Coba lagi.
                 </div>
               )}
               <button
