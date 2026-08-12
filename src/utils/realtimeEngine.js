@@ -667,21 +667,30 @@ class RealtimeEngine extends EventEmitter {
 
     const interval = TRANSMISSION_INTERVAL[mode.toUpperCase()] || TRANSMISSION_INTERVAL.NORMAL;
 
+    // Hentikan watcher & timer lama jika masih berjalan
     if (this._geoWatchId !== null) {
       navigator.geolocation.clearWatch(this._geoWatchId);
     }
+    if (this._gpsThrottleTimer) {
+      clearInterval(this._gpsThrottleTimer);
+      this._gpsThrottleTimer = null;
+    }
+
+    // Simpan posisi GPS terbaru dari OS tanpa langsung publish
+    this._latestGpsPos = null;
 
     this._geoWatchId = navigator.geolocation.watchPosition(
       (pos) => {
         const { latitude, longitude, altitude, speed, heading, accuracy } = pos.coords;
-        this.updateRiderPosition(riderId, {
+        // Simpan posisi terbaru — publish akan dilakukan oleh timer throttle
+        this._latestGpsPos = {
           lat: latitude,
           lon: longitude,
           ele: altitude || 0,
-          speed: speed ? speed * 3.6 : 0,
+          speed: speed != null ? speed * 3.6 : 0,
           heading: heading || 0,
           accuracy: accuracy || 0,
-        }, true);
+        };
         this.emit('gps:update', { lat: latitude, lon: longitude, accuracy });
       },
       (err) => {
@@ -690,10 +699,18 @@ class RealtimeEngine extends EventEmitter {
       },
       {
         enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: Math.min(interval, 5000),
+        timeout: 20000,
+        maximumAge: 0, // Selalu minta posisi SEGAR dari GPS hardware — jangan pakai cache
       }
     );
+
+    // Timer throttle: kirim posisi terbaru ke server & peta setiap `interval` ms
+    // Ini memastikan marker SELALU bergerak saat rider bergerak, tidak menunggu GPS OS
+    this._gpsThrottleTimer = setInterval(() => {
+      if (this._latestGpsPos) {
+        this.updateRiderPosition(riderId, this._latestGpsPos, true);
+      }
+    }, interval);
   }
 
   stopLiveGPS() {
@@ -701,6 +718,11 @@ class RealtimeEngine extends EventEmitter {
       navigator.geolocation.clearWatch(this._geoWatchId);
       this._geoWatchId = null;
     }
+    if (this._gpsThrottleTimer) {
+      clearInterval(this._gpsThrottleTimer);
+      this._gpsThrottleTimer = null;
+    }
+    this._latestGpsPos = null;
   }
 
   // ── Wake Lock ─────────────────────────────────────
