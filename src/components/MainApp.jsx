@@ -830,15 +830,13 @@ export default function MainApp({ userRole, onChangeRole }) {
                         setPinChangeError('Konfirmasi PIN tidak cocok.');
                         return;
                       }
-                      try {
-                        localStorage.setItem('cyclotrack_admin_pin', changePinNew);
-                      } catch (e) {}
+                      engine.setAdminPin(changePinNew);
                       setPinChangeSuccess(true);
                       setPinChangeError('');
                       setChangePinOld('');
                       setChangePinNew('');
                       setChangePinConfirm('');
-                      addToast('PIN Admin berhasil diubah!', 'success', '🔐');
+                      addToast('PIN Admin berhasil diubah & disinkronkan ke semua perangkat!', 'success', '🔐');
                     }}
                   >
                     🔐 Simpan PIN Baru

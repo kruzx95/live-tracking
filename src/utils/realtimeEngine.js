@@ -220,6 +220,13 @@ class RealtimeEngine extends EventEmitter {
         }
         break;
 
+      case 'ADMIN_PIN_UPDATE':
+        if (data.pin) {
+          try { localStorage.setItem('cyclotrack_admin_pin', data.pin); } catch (e) {}
+          this.emit('admin_pin:updated', data.pin);
+        }
+        break;
+
       case 'REQUEST_SYNC':
         // Jika kita punya rute, bagikan rute ke pengguna yang baru join
         if (this.route) {
@@ -229,6 +236,13 @@ class RealtimeEngine extends EventEmitter {
         if (this.participants.size > 0) {
           this._publishMessage({ type: 'PARTICIPANTS_UPDATE', participants: this.getParticipantsArray() });
         }
+        // Bagikan PIN admin jika sudah diubah dari default
+        try {
+          const savedPin = localStorage.getItem('cyclotrack_admin_pin');
+          if (savedPin) {
+            this._publishMessage({ type: 'ADMIN_PIN_UPDATE', pin: savedPin });
+          }
+        } catch (e) {}
         // Dan bagikan data rider kita jika ada
         this.riders.forEach((rider) => {
           this._publishMessage({ type: 'RIDER_UPDATE', rider });
@@ -502,6 +516,13 @@ class RealtimeEngine extends EventEmitter {
 
   getParticipantsArray() {
     return Array.from(this.participants.values()).sort((a, b) => parseInt(a.bib) - parseInt(b.bib));
+  }
+
+  // ── Admin PIN Management (Synced via MQTT) ─────────
+  setAdminPin(newPin) {
+    try { localStorage.setItem('cyclotrack_admin_pin', newPin); } catch (e) {}
+    this._publishMessage({ type: 'ADMIN_PIN_UPDATE', pin: newPin });
+    this.emit('admin_pin:updated', newPin);
   }
 
   validateParticipant(bib, pin) {
