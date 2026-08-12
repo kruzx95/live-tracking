@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import replayEngine from '../utils/replayEngine';
+import screenRecorder from '../utils/screenRecorder';
 
 function formatTimeMs(ms) {
   const totalSec = Math.floor(ms / 1000);
@@ -14,14 +15,16 @@ function formatTimeMs(ms) {
 }
 
 export default function ReplayControls({ onReplayFrameUpdate, isMobile = false }) {
-  const [isRecording, setIsRecording]   = useState(replayEngine.isRecording);
-  const [isPlaying, setIsPlaying]       = useState(replayEngine.isPlaying);
-  const [progress, setProgress]         = useState(0); // 0.0 sampai 1.0
-  const [timeMs, setTimeMs]             = useState(0);
-  const [durationMs, setDurationMs]     = useState(0);
-  const [speed, setSpeed]               = useState(replayEngine.speedMultiplier);
-  const [hasData, setHasData]           = useState(!!replayEngine.recordedData || !!replayEngine.loadSavedSession());
-  const [eventTitle, setEventTitle]     = useState('');
+  const [isRecording, setIsRecording]     = useState(replayEngine.isRecording);
+  const [isVideoRecording, setIsVideoRecording] = useState(screenRecorder.isRecordingVideo);
+  const [videoElapsedMs, setVideoElapsedMs]     = useState(0);
+  const [isPlaying, setIsPlaying]         = useState(replayEngine.isPlaying);
+  const [progress, setProgress]           = useState(0); // 0.0 sampai 1.0
+  const [timeMs, setTimeMs]               = useState(0);
+  const [durationMs, setDurationMs]       = useState(0);
+  const [speed, setSpeed]                 = useState(replayEngine.speedMultiplier);
+  const [hasData, setHasData]             = useState(!!replayEngine.recordedData || !!replayEngine.loadSavedSession());
+  const [eventTitle, setEventTitle]       = useState('');
   const fileInputRef = useRef(null);
 
   // Subscribe ke replayEngine events
@@ -73,14 +76,29 @@ export default function ReplayControls({ onReplayFrameUpdate, isMobile = false }
       setEventTitle(saved.title);
     }
 
+    // Subscribe ke screenRecorder events
+    const unsubVStart = screenRecorder.on('video:started', () => setIsVideoRecording(true));
+    const unsubVTick  = screenRecorder.on('video:tick', ({ elapsedMs }) => setVideoElapsedMs(elapsedMs));
+    const unsubVStop  = screenRecorder.on('video:stopped', () => setIsVideoRecording(false));
+    const unsubVComp  = screenRecorder.on('video:completed', () => setIsVideoRecording(false));
+
     return () => {
       unsubStarted(); unsubStopped();
       unsubPStarted(); unsubPPaused(); unsubPResumed(); unsubPStopped();
       unsubTick(); unsubFrame(); unsubLoaded();
+      unsubVStart(); unsubVTick(); unsubVStop(); unsubVComp();
     };
   }, [onReplayFrameUpdate]);
 
   // Handlers
+  const handleToggleVideoRecording = useCallback(async () => {
+    if (isVideoRecording) {
+      screenRecorder.stopScreenRecording();
+    } else {
+      await screenRecorder.startScreenRecording();
+    }
+  }, [isVideoRecording]);
+
   const handleToggleRecord = useCallback(() => {
     if (isRecording) {
       replayEngine.stopRecording();
@@ -158,19 +176,40 @@ export default function ReplayControls({ onReplayFrameUpdate, isMobile = false }
 
         {/* Record & Export/Import Buttons */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-          {/* Button: Record */}
+          {/* Button: Rekam Video Layar (.WebM / MP4) */}
+          <button
+            onClick={handleToggleVideoRecording}
+            className={`btn btn-sm ${isVideoRecording ? 'btn-danger' : 'btn-ghost'}`}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 'var(--space-1)',
+              background: isVideoRecording ? 'rgba(255, 45, 85, 0.2)' : 'rgba(0, 198, 255, 0.12)',
+              border: `1px solid ${isVideoRecording ? '#ff2d55' : 'rgba(0, 198, 255, 0.4)'}`,
+              color: isVideoRecording ? '#ff2d55' : 'var(--clr-brand)',
+              fontWeight: 700,
+            }}
+            title={isVideoRecording ? 'Hentikan & Unduh Video Layar' : 'Rekam Video Layar Peta HD (.WebM / MP4)'}
+          >
+            <div style={{
+              width: 8, height: 8, borderRadius: '50%',
+              background: isVideoRecording ? '#ff2d55' : 'var(--clr-brand)',
+              animation: isVideoRecording ? 'sos-active-pulse 1s ease-in-out infinite' : 'none',
+            }} />
+            <span>{isVideoRecording ? `⏹ Stop Video (${formatTimeMs(videoElapsedMs)})` : '📹 Rekam Video HD'}</span>
+          </button>
+
+          {/* Button: Record Data Event */}
           <button
             onClick={handleToggleRecord}
             className={`btn btn-sm ${isRecording ? 'btn-danger' : 'btn-ghost'}`}
             style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}
-            title={isRecording ? 'Hentikan Perekaman Event' : 'Mulai Rekam Event Live'}
+            title={isRecording ? 'Hentikan Perekaman Data Event' : 'Mulai Rekam Data Event Live'}
           >
             <div style={{
               width: 8, height: 8, borderRadius: '50%',
               background: isRecording ? '#ff2d55' : '#8b949e',
               animation: isRecording ? 'sos-active-pulse 1.2s ease-in-out infinite' : 'none',
             }} />
-            <span>{isRecording ? '⏹ Stop Rekam' : '🔴 Rekam Event'}</span>
+            <span>{isRecording ? '⏹ Stop Data' : '🔴 Rekam Data'}</span>
           </button>
 
           {/* Button: Unduh JSON */}

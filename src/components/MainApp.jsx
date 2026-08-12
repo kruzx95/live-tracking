@@ -448,8 +448,6 @@ export default function MainApp({ userRole, onChangeRole }) {
                 onFocusRider={handleFocusRider}
                 onShareLink={() => setShowQRModal(true)}
               />
-              <div className="divider" />
-              <ReplayControls onReplayFrameUpdate={handleReplayFrameUpdate} />
             </div>
           )}
 
