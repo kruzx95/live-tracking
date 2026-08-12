@@ -3,6 +3,10 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  server: {
+    host: true,   // Expose ke jaringan lokal agar bisa diakses HP lain via IP
+    port: 5173,
+  },
   plugins: [
     react(),
     VitePWA({
@@ -51,3 +55,4 @@ export default defineConfig({
     }),
   ],
 })
+
