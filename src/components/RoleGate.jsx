@@ -11,7 +11,14 @@ import { useState } from 'react';
 import PWAInstallBanner from './PWAInstallBanner';
 import CycloTrackLogo from './CycloTrackLogo';
 
-const ADMIN_PIN = '1234'; // PIN default panitia
+// PIN admin disimpan di localStorage — default '1234' jika belum pernah diubah
+function getAdminPin() {
+  try {
+    return localStorage.getItem('cyclotrack_admin_pin') || '1234';
+  } catch (e) {
+    return '1234';
+  }
+}
 
 export default function RoleGate({ onSelectRole }) {
   const [showPinModal, setShowPinModal] = useState(false);
@@ -21,7 +28,7 @@ export default function RoleGate({ onSelectRole }) {
 
   const handleAdminSubmit = (e) => {
     e.preventDefault();
-    if (pin === ADMIN_PIN) {
+    if (pin === getAdminPin()) {
       onSelectRole('admin');
     } else {
       setPinError(true);
@@ -283,7 +290,7 @@ export default function RoleGate({ onSelectRole }) {
                 inputMode="numeric"
                 pattern="[0-9]*"
                 maxLength={6}
-                placeholder="PIN (Default: 1234)"
+                placeholder={localStorage.getItem('cyclotrack_admin_pin') ? 'Masukkan PIN Admin' : 'PIN (Default: 1234)'}
                 value={pin}
                 onChange={(e) => { setPin(e.target.value); setPinError(false); }}
                 autoFocus
@@ -298,7 +305,7 @@ export default function RoleGate({ onSelectRole }) {
               />
               {pinError && (
                 <div style={{ color: 'var(--clr-danger)', fontSize: 'var(--text-xs)', fontWeight: 600 }}>
-                  ❌ PIN salah (Default: 1234). Coba lagi.
+                  ❌ PIN salah.{!localStorage.getItem('cyclotrack_admin_pin') && ' (Default: 1234)'} Coba lagi.
                 </div>
               )}
               <button

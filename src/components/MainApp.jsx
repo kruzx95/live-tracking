@@ -80,6 +80,11 @@ export default function MainApp({ userRole, onChangeRole }) {
   const [inputName, setInputName]     = useState('');
   const [inputPin, setInputPin]       = useState('1234');
   const [showQRModal, setShowQRModal] = useState(false);
+  const [changePinOld, setChangePinOld]         = useState('');
+  const [changePinNew, setChangePinNew]         = useState('');
+  const [changePinConfirm, setChangePinConfirm] = useState('');
+  const [pinChangeError, setPinChangeError]     = useState('');
+  const [pinChangeSuccess, setPinChangeSuccess] = useState(false);
   const fileInputRef = useRef(null);
 
   const lastNotifiedRouteRef = useRef(null);
@@ -750,6 +755,95 @@ export default function MainApp({ userRole, onChangeRole }) {
                     ))}
                   </div>
                 )}
+              </div>
+
+              <div className="divider" />
+
+              {/* Ganti PIN Admin */}
+              <div>
+                <div className="label">🔐 Ganti PIN Admin</div>
+                <div style={{
+                  padding: 'var(--space-3)',
+                  background: 'var(--clr-bg-elevated)',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--clr-border)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 'var(--space-2)',
+                }}>
+                  <input
+                    className="input"
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={6}
+                    style={{ fontSize: 'var(--text-xs)', padding: '6px 10px' }}
+                    placeholder="PIN Lama"
+                    value={changePinOld}
+                    onChange={(e) => { setChangePinOld(e.target.value); setPinChangeError(''); setPinChangeSuccess(false); }}
+                  />
+                  <input
+                    className="input"
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={6}
+                    style={{ fontSize: 'var(--text-xs)', padding: '6px 10px' }}
+                    placeholder="PIN Baru (4-6 digit)"
+                    value={changePinNew}
+                    onChange={(e) => { setChangePinNew(e.target.value); setPinChangeError(''); setPinChangeSuccess(false); }}
+                  />
+                  <input
+                    className="input"
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={6}
+                    style={{ fontSize: 'var(--text-xs)', padding: '6px 10px' }}
+                    placeholder="Konfirmasi PIN Baru"
+                    value={changePinConfirm}
+                    onChange={(e) => { setChangePinConfirm(e.target.value); setPinChangeError(''); setPinChangeSuccess(false); }}
+                  />
+
+                  {pinChangeError && (
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--clr-danger)', fontWeight: 600 }}>
+                      ⚠️ {pinChangeError}
+                    </div>
+                  )}
+                  {pinChangeSuccess && (
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--clr-accent)', fontWeight: 600 }}>
+                      ✅ PIN Admin berhasil diubah!
+                    </div>
+                  )}
+
+                  <button
+                    className="btn btn-primary btn-sm w-full"
+                    disabled={!changePinOld || !changePinNew || !changePinConfirm}
+                    onClick={() => {
+                      const currentPin = localStorage.getItem('cyclotrack_admin_pin') || '1234';
+                      if (changePinOld !== currentPin) {
+                        setPinChangeError('PIN lama salah!');
+                        return;
+                      }
+                      if (changePinNew.length < 4) {
+                        setPinChangeError('PIN baru minimal 4 digit.');
+                        return;
+                      }
+                      if (changePinNew !== changePinConfirm) {
+                        setPinChangeError('Konfirmasi PIN tidak cocok.');
+                        return;
+                      }
+                      try {
+                        localStorage.setItem('cyclotrack_admin_pin', changePinNew);
+                      } catch (e) {}
+                      setPinChangeSuccess(true);
+                      setPinChangeError('');
+                      setChangePinOld('');
+                      setChangePinNew('');
+                      setChangePinConfirm('');
+                      addToast('PIN Admin berhasil diubah!', 'success', '🔐');
+                    }}
+                  >
+                    🔐 Simpan PIN Baru
+                  </button>
+                </div>
               </div>
 
               <div className="divider" />
