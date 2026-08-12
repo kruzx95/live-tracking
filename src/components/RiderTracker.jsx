@@ -177,6 +177,9 @@ export default function RiderTracker({ route, riderId, riderName, onRiderChange 
     setIsTracking(true);
     setGpsStatus('searching');
 
+    // Broadcast ke semua perangkat bahwa rider aktif kembali
+    engine.resumeRiderTracking(riderIdRef.current);
+
     // Wake Lock jika mode high precision
     if (batteryMode === 'high') {
       await engine.requestWakeLock();
@@ -191,6 +194,8 @@ export default function RiderTracker({ route, riderId, riderName, onRiderChange 
     engine.stopLiveGPS();
     engine.releaseWakeLock();
     setWakeLockOn(false);
+    // Broadcast ke semua perangkat bahwa rider ini berhenti tracking
+    engine.pauseRiderTracking(riderIdRef.current);
   }, []);
 
   // ── SOS ──────────────────────────────────────────

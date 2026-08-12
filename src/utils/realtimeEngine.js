@@ -34,6 +34,7 @@ class EventEmitter {
 export const RIDER_STATUS = {
   ACTIVE:     'active',
   STOPPED:    'stopped',
+  PAUSED:     'paused',   // Rider aktif tapi sengaja stop tracking GPS
   OFFCOURSE:  'offcourse',
   SOS:        'sos',
   FINISHED:   'finished',
@@ -189,6 +190,29 @@ class RealtimeEngine extends EventEmitter {
             this.riders.set(data.riderId, updated);
             if (data.isSOS) this.emit('rider:sos', updated);
             else this.emit('rider:sos_cancelled', updated);
+            this.emit('riders:updated', this._getRidersArray());
+          }
+        }
+        break;
+
+      case 'RIDER_PAUSE':
+        if (data.riderId) {
+          const rider = this.riders.get(data.riderId);
+          if (rider) {
+            const paused = { ...rider, status: RIDER_STATUS.PAUSED, speed: 0 };
+            this.riders.set(data.riderId, paused);
+            this.emit('rider:paused', paused);
+            this.emit('riders:updated', this._getRidersArray());
+          }
+        }
+        break;
+
+      case 'RIDER_RESUME':
+        if (data.riderId) {
+          const rider = this.riders.get(data.riderId);
+          if (rider) {
+            const resumed = { ...rider, status: RIDER_STATUS.ACTIVE };
+            this.riders.set(data.riderId, resumed);
             this.emit('riders:updated', this._getRidersArray());
           }
         }
@@ -455,6 +479,27 @@ class RealtimeEngine extends EventEmitter {
     }
   }
 
+  // Pause tracking: broadcast ke semua perangkat bahwa rider berhenti tracking
+  pauseRiderTracking(id) {
+    const rider = this.riders.get(id);
+    if (!rider) return;
+    const paused = { ...rider, status: RIDER_STATUS.PAUSED, speed: 0 };
+    this.riders.set(id, paused);
+    this.emit('rider:paused', paused);
+    this.emit('riders:updated', this._getRidersArray());
+    this._publishMessage({ type: 'RIDER_PAUSE', riderId: id });
+  }
+
+  // Resume tracking: broadcast ke semua perangkat bahwa rider aktif kembali
+  resumeRiderTracking(id) {
+    const rider = this.riders.get(id);
+    if (!rider) return;
+    const resumed = { ...rider, status: RIDER_STATUS.ACTIVE };
+    this.riders.set(id, resumed);
+    this.emit('riders:updated', this._getRidersArray());
+    this._publishMessage({ type: 'RIDER_RESUME', riderId: id });
+  }
+
   triggerSOS(id) {
     const rider = this.riders.get(id);
     if (!rider) return;
@@ -676,14 +721,13 @@ class RealtimeEngine extends EventEmitter {
       this._gpsThrottleTimer = null;
     }
 
-    // Simpan posisi GPS terbaru dari OS tanpa langsung publish
-    this._latestGpsPos = null;
+    // Flag: posisi pertama langsung dikirim tanpa menunggu throttle
+    this._firstGpsFix = true;
 
     this._geoWatchId = navigator.geolocation.watchPosition(
       (pos) => {
         const { latitude, longitude, altitude, speed, heading, accuracy } = pos.coords;
-        // Simpan posisi terbaru — publish akan dilakukan oleh timer throttle
-        this._latestGpsPos = {
+        const posData = {
           lat: latitude,
           lon: longitude,
           ele: altitude || 0,
@@ -691,7 +735,17 @@ class RealtimeEngine extends EventEmitter {
           heading: heading || 0,
           accuracy: accuracy || 0,
         };
+
+        // Simpan posisi terbaru — publish dilakukan oleh timer throttle
+        this._latestGpsPos = posData;
         this.emit('gps:update', { lat: latitude, lon: longitude, accuracy });
+
+        // Langsung kirim posisi PERTAMA tanpa menunggu timer throttle
+        // agar marker langsung muncul di peta saat GPS pertama kali terkunci
+        if (this._firstGpsFix) {
+          this._firstGpsFix = false;
+          this.updateRiderPosition(riderId, posData, true);
+        }
       },
       (err) => {
         console.error('[LiveGPS] Error:', err);

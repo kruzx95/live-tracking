@@ -62,6 +62,7 @@ function createRiderIcon(rider) {
   const statusColors = {
     [RIDER_STATUS.ACTIVE]:    '#4ade80',
     [RIDER_STATUS.STOPPED]:   '#fbbf24',
+    [RIDER_STATUS.PAUSED]:    '#6b7280',
     [RIDER_STATUS.OFFCOURSE]: '#f97316',
     [RIDER_STATUS.SOS]:       '#ff2d55',
     [RIDER_STATUS.FINISHED]:  '#00c6ff',
@@ -71,6 +72,7 @@ function createRiderIcon(rider) {
   const dotColor = statusColors[rider.status] || rider.color || '#00c6ff';
   const isSOS = rider.status === RIDER_STATUS.SOS;
   const isFinished = rider.status === RIDER_STATUS.FINISHED;
+  const isPaused  = rider.status === RIDER_STATUS.PAUSED;
 
   const initials = rider.name
     ? rider.name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2)
@@ -79,7 +81,7 @@ function createRiderIcon(rider) {
   return L.divIcon({
     className: '',
     html: `
-      <div style="position:relative; width:38px; height:38px;">
+      <div style="position:relative; width:38px; height:38px; ${isPaused ? 'opacity:0.45;' : ''}">
         ${isSOS ? `
           <div style="
             position:absolute; inset:-10px;
@@ -106,7 +108,7 @@ function createRiderIcon(rider) {
           box-shadow: 0 3px 12px rgba(0,0,0,0.8), 0 0 ${isSOS ? '18px' : '10px'} ${dotColor}77;
           position: relative; z-index: 1;
           ${isFinished ? 'opacity: 0.8;' : ''}
-        ">${initials}</div>
+        ">${isPaused ? '⏸' : initials}</div>
         <div style="
           position:absolute; bottom:-4px; left:50%; transform:translateX(-50%);
           width:0; height:0;
@@ -127,6 +129,7 @@ function createRiderPopup(rider) {
   const statusLabel = {
     [RIDER_STATUS.ACTIVE]:    '🟢 Aktif',
     [RIDER_STATUS.STOPPED]:   '🟡 Berhenti',
+    [RIDER_STATUS.PAUSED]:    '⏸️ Stop Tracking',
     [RIDER_STATUS.OFFCOURSE]: '🟠 Off-Course',
     [RIDER_STATUS.SOS]:       '🔴 SOS — DARURAT',
     [RIDER_STATUS.FINISHED]:  '✅ Finish',

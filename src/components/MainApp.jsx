@@ -393,20 +393,31 @@ export default function MainApp({ userRole, onChangeRole }) {
           {/* Overlay: Bottom Left (Rider Count stacked above Simulator Badge) */}
           <div className="map-overlay map-overlay-bl" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', alignItems: 'flex-start' }}>
             {/* Rider count card */}
-            {riders.length > 0 && (
-              <div className="card-glass" style={{ padding: 'var(--space-2) var(--space-3)', minWidth: 110, backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: '1px solid var(--clr-border-glow)' }}>
-                <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--clr-text-secondary)', marginBottom: '2px', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--clr-accent)', boxShadow: '0 0 6px var(--clr-accent)' }} />
-                  Rider Online
+            {riders.length > 0 && (() => {
+              const onMapCount  = riders.filter((r) => r.lat !== null && r.lon !== null).length;
+              const activeCount = riders.filter((r) => (r.status === 'active' || r.status === 'offcourse') && r.lat !== null).length;
+              const waitingGps  = riders.filter((r) => r.lat === null || r.lon === null).length;
+              return (
+                <div className="card-glass" style={{ padding: 'var(--space-2) var(--space-3)', minWidth: 120, backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: '1px solid var(--clr-border-glow)' }}>
+                  <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--clr-text-secondary)', marginBottom: '2px', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--clr-accent)', boxShadow: '0 0 6px var(--clr-accent)' }} />
+                    Rider di Peta
+                  </div>
+                  <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, fontFamily: 'var(--font-mono)', color: 'var(--clr-brand)', lineHeight: 1 }}>
+                    {activeCount}
+                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--clr-text-secondary)', fontWeight: 600, marginLeft: 2 }}>
+                      /{onMapCount} terlihat
+                    </span>
+                  </div>
+                  {waitingGps > 0 && (
+                    <div style={{ fontSize: '9px', color: 'var(--clr-warning)', marginTop: 3, display: 'flex', alignItems: 'center', gap: 3 }}>
+                      <span style={{ animation: 'spin 1.2s linear infinite', display: 'inline-block' }}>⏳</span>
+                      {waitingGps} rider menunggu GPS
+                    </div>
+                  )}
                 </div>
-                <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, fontFamily: 'var(--font-mono)', color: 'var(--clr-brand)', lineHeight: 1 }}>
-                  {riders.filter((r) => r.status === 'active' || r.status === 'offcourse').length}
-                  <span style={{ fontSize: 'var(--text-xs)', color: 'var(--clr-text-secondary)', fontWeight: 600, marginLeft: 2 }}>
-                    /{riders.length}
-                  </span>
-                </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* Simulator badge */}
             {isSimRunning && (
