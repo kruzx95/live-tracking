@@ -390,32 +390,32 @@ export default function MainApp({ userRole, onChangeRole }) {
             onRiderClick={handleFocusRider}
           />
 
-          {/* Overlay: Rider count */}
-          {riders.length > 0 && (
-            <div className="map-overlay map-overlay-tl">
-              <div className="card-glass" style={{ padding: 'var(--space-3) var(--space-4)', minWidth: 120 }}>
-                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--clr-text-muted)', marginBottom: 'var(--space-1)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          {/* Overlay: Bottom Left (Rider Count stacked above Simulator Badge) */}
+          <div className="map-overlay map-overlay-bl" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', alignItems: 'flex-start' }}>
+            {/* Rider count card */}
+            {riders.length > 0 && (
+              <div className="card-glass" style={{ padding: 'var(--space-2) var(--space-3)', minWidth: 110, backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: '1px solid var(--clr-border-glow)' }}>
+                <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--clr-text-secondary)', marginBottom: '2px', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--clr-accent)', boxShadow: '0 0 6px var(--clr-accent)' }} />
                   Rider Online
                 </div>
-                <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 800, fontFamily: 'var(--font-mono)', color: 'var(--clr-brand)' }}>
+                <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, fontFamily: 'var(--font-mono)', color: 'var(--clr-brand)', lineHeight: 1 }}>
                   {riders.filter((r) => r.status === 'active' || r.status === 'offcourse').length}
-                  <span style={{ fontSize: 'var(--text-base)', color: 'var(--clr-text-muted)', fontWeight: 400 }}>
+                  <span style={{ fontSize: 'var(--text-xs)', color: 'var(--clr-text-secondary)', fontWeight: 600, marginLeft: 2 }}>
                     /{riders.length}
                   </span>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Overlay: Simulator badge */}
-          {isSimRunning && (
-            <div className="map-overlay map-overlay-bl">
-              <div className="card-glass" style={{ padding: 'var(--space-2) var(--space-4)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', borderColor: 'rgba(251,191,36,0.4)' }}>
+            {/* Simulator badge */}
+            {isSimRunning && (
+              <div className="card-glass" style={{ padding: 'var(--space-2) var(--space-3)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', borderColor: 'rgba(251,191,36,0.5)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>
                 <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--clr-warning)', animation: 'sos-active-pulse 1.5s ease-in-out infinite' }} />
-                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--clr-warning)', fontWeight: 700 }}>SIMULATOR AKTIF</span>
+                <span style={{ fontSize: '10px', color: 'var(--clr-warning)', fontWeight: 800, letterSpacing: '0.04em' }}>SIMULATOR AKTIF</span>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* ── Side Panel ── */}
