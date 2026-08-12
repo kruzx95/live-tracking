@@ -65,6 +65,9 @@ class RealtimeEngine extends EventEmitter {
     this.isSyncConnected = false;
     this._clientId = `cyclotrack_${Math.random().toString(36).substring(2, 10)}`;
 
+    // Load cached participants jika ada
+    this._loadCachedParticipants();
+
     // 1. Inisialisasi BroadcastChannel lokal
     this._initBroadcastChannel();
 
@@ -216,6 +219,7 @@ class RealtimeEngine extends EventEmitter {
         if (data.participants && Array.isArray(data.participants)) {
           this.participants.clear();
           data.participants.forEach((p) => this.participants.set(String(p.bib), p));
+          try { localStorage.setItem('cyclotrack_participants', JSON.stringify(this.getParticipantsArray())); } catch (e) {}
           this.emit('participants:updated', this.getParticipantsArray());
         }
         break;
@@ -234,7 +238,7 @@ class RealtimeEngine extends EventEmitter {
         }
         // Bagikan data peserta resmi jika ada
         if (this.participants.size > 0) {
-          this._publishMessage({ type: 'PARTICIPANTS_UPDATE', participants: this.getParticipantsArray() });
+          this._publishMessage({ type: 'PARTICIPANTS_UPDATE', participants: this.getParticipantsArray() }, { retain: true });
         }
         // Bagikan PIN admin jika sudah diubah dari default
         try {
@@ -498,6 +502,25 @@ class RealtimeEngine extends EventEmitter {
   }
 
   // ── Official Participants Master List (BIB & PIN) ──
+  _loadCachedParticipants() {
+    try {
+      const saved = localStorage.getItem('cyclotrack_participants');
+      if (saved) {
+        const list = JSON.parse(saved);
+        if (Array.isArray(list)) {
+          list.forEach((p) => {
+            this.participants.set(String(p.bib), {
+              bib: String(p.bib),
+              name: p.name,
+              pin: String(p.pin),
+              color: p.color || '#00c6ff',
+            });
+          });
+        }
+      }
+    } catch (e) {}
+  }
+
   setParticipants(list, broadcast = true) {
     this.participants.clear();
     list.forEach((p) => {
@@ -508,9 +531,10 @@ class RealtimeEngine extends EventEmitter {
         color: p.color || '#00c6ff',
       });
     });
+    try { localStorage.setItem('cyclotrack_participants', JSON.stringify(this.getParticipantsArray())); } catch (e) {}
     this.emit('participants:updated', this.getParticipantsArray());
     if (broadcast) {
-      this._publishMessage({ type: 'PARTICIPANTS_UPDATE', participants: this.getParticipantsArray() });
+      this._publishMessage({ type: 'PARTICIPANTS_UPDATE', participants: this.getParticipantsArray() }, { retain: true });
     }
   }
 
