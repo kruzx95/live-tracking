@@ -691,14 +691,31 @@ export default function MainApp({ userRole, onChangeRole }) {
                     className="btn btn-primary btn-sm w-full"
                     disabled={!inputBib.trim() || !inputName.trim()}
                     onClick={() => {
-                      const newList = [
-                        ...officialParticipants,
-                        { bib: inputBib.trim(), name: inputName.trim(), pin: inputPin.trim() || '1234', color: '#00c6ff' },
-                      ];
+                      const targetBib = inputBib.trim();
+                      const targetName = inputName.trim();
+                      const targetPin = inputPin.trim() || '1234';
+                      const existingIndex = officialParticipants.findIndex((p) => String(p.bib) === targetBib);
+
+                      let newList;
+                      if (existingIndex >= 0) {
+                        newList = [...officialParticipants];
+                        newList[existingIndex] = {
+                          ...newList[existingIndex],
+                          name: targetName,
+                          pin: targetPin,
+                        };
+                        addToast(`Data peserta BIB #${targetBib} diperbarui!`, 'info', '✏️');
+                      } else {
+                        newList = [
+                          ...officialParticipants,
+                          { bib: targetBib, name: targetName, pin: targetPin, color: '#00c6ff' },
+                        ];
+                        addToast(`Peserta BIB #${targetBib} ditambahkan`, 'success', '✅');
+                      }
+
                       engine.setParticipants(newList, true);
                       setInputBib('');
                       setInputName('');
-                      addToast(`Peserta BIB #${inputBib.trim()} ditambahkan`, 'success', '✅');
                     }}
                   >
                     Simpan Peserta Resmi
