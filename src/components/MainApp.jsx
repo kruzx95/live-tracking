@@ -287,7 +287,7 @@ export default function MainApp({ userRole, onChangeRole }) {
           <span>Cyclo<span className="brand">Track</span></span>
         </div>
 
-        {/* Route indicator — hidden on mobile */}
+        {/* Route indicator — hidden on medium/mobile screens */}
         {routeName && (
           <div className="topbar-route-pill" title={`Rute Aktif: ${routeName}`}>
             <span style={{ flexShrink: 0 }}>📍</span>
@@ -299,86 +299,63 @@ export default function MainApp({ userRole, onChangeRole }) {
 
         <div className="topbar-spacer" />
 
-        {/* Live / Sync indicator */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--text-xs)' }}>
-            <div
-              className="topbar-sync-badge"
-              style={{
-                display: 'flex', alignItems: 'center', gap: 4,
-                padding: '2px 8px',
-                background: isSyncConnected ? 'rgba(43,101,79,0.1)' : 'rgba(217,119,6,0.1)',
-                border: `1px solid ${isSyncConnected ? 'rgba(43,101,79,0.3)' : 'rgba(217,119,6,0.3)'}`,
-                borderRadius: 'var(--radius-full)',
-                color: isSyncConnected ? 'var(--clr-accent)' : 'var(--clr-warning)',
-                fontWeight: 600,
-                flexShrink: 0,
-              }}
-              title={isSyncConnected ? 'Terhubung ke server sinkronisasi real-time lintas HP' : 'Mencoba terhubung ke server...'}
-            >
-              <div style={{
-                width: 6, height: 6, borderRadius: '50%',
-                background: isSyncConnected ? 'var(--clr-accent)' : 'var(--clr-warning)',
-                animation: 'sos-active-pulse 1.5s ease-in-out infinite',
-                flexShrink: 0,
-              }} />
-              <span className="topbar-sync-text">{isSyncConnected ? '⚡ Realtime Sync' : '🔄 Connecting...'}</span>
-            </div>
-
-            {/* Tombol QR Code & Bagikan Link */}
-            <button
-              onClick={() => setShowQRModal(true)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 4,
-                padding: '3px 10px',
-                background: 'rgba(115,191,199,0.15)',
-                border: '1px solid rgba(115,191,199,0.45)',
-                borderRadius: 'var(--radius-full)',
-                color: 'var(--clr-text-brand)',
-                fontSize: 'var(--text-xs)',
-                fontWeight: 700,
-                cursor: 'pointer',
-                flexShrink: 0,
-                fontFamily: 'var(--font-body)',
-              }}
-              title="Tampilkan QR Code & Bagikan Link Live Event"
-            >
-              📱 Bagikan
-            </button>
+        {/* Right side actions group */}
+        <div className="topbar-actions">
+          {/* Live / Sync indicator */}
+          <div
+            className={`topbar-sync-badge ${isSyncConnected ? 'connected' : 'connecting'}`}
+            title={isSyncConnected ? 'Terhubung ke server sinkronisasi real-time lintas HP' : 'Mencoba terhubung ke server...'}
+          >
+            <div style={{
+              width: 6, height: 6, borderRadius: '50%',
+              background: isSyncConnected ? 'var(--clr-accent)' : 'var(--clr-warning)',
+              animation: 'sos-active-pulse 1.5s ease-in-out infinite',
+              flexShrink: 0,
+            }} />
+            <span className="topbar-sync-text">{isSyncConnected ? '⚡ Realtime Sync' : '🔄 Connecting...'}</span>
           </div>
 
-        {/* Role Badge */}
-        <button
-          id="role-badge"
-          onClick={handleChangeRole}
-          title="Klik untuk keluar / ganti peran"
-          style={{
-            display: 'flex', alignItems: 'center', gap: 'var(--space-1)',
-            padding: '3px var(--space-3)',
-            background: roleBadge.bg,
-            border: `1px solid ${roleBadge.color}44`,
-            borderRadius: 'var(--radius-full)',
-            fontSize: 'var(--text-xs)', fontWeight: 700, color: roleBadge.color,
-            cursor: 'pointer', flexShrink: 0,
-            fontFamily: 'var(--font-body)',
-          }}
-        >
-          {roleBadge.emoji} {roleBadge.label}
-        </button>
+          {/* Tombol QR Code & Bagikan Link */}
+          <button
+            className="topbar-share-btn"
+            onClick={() => setShowQRModal(true)}
+            title="Tampilkan QR Code & Bagikan Link Live Event"
+          >
+            <span>📱</span>
+            <span className="share-label">Bagikan</span>
+          </button>
 
-        {/* Mode Tabs — desktop: teks penuh | mobile: icon saja */}
-        <nav className="topbar-mode-tabs" aria-label="Mode navigasi">
-          {allowedTabs.map(({ key, label, shortLabel, id, icon: TabIcon }) => (
-            <button
-              key={key} id={id}
-              className={`mode-tab ${mode === key ? 'active' : ''}`}
-              onClick={() => setMode(key)}
-            >
-              <TabIcon size={14} weight="bold" />
-              <span className="tab-full-label">{label}</span>
-              <span className="tab-short-label">{shortLabel}</span>
-            </button>
-          ))}
-        </nav>
+          {/* Role Badge Button */}
+          <button
+            id="role-badge"
+            className="topbar-role-btn"
+            onClick={handleChangeRole}
+            title="Klik untuk keluar / ganti peran"
+            style={{
+              background: roleBadge.bg,
+              border: `1px solid ${roleBadge.color}44`,
+              color: roleBadge.color,
+            }}
+          >
+            <span>{roleBadge.emoji}</span>
+            <span className="role-label">{roleBadge.label}</span>
+          </button>
+
+          {/* Mode Navigation Tabs */}
+          <nav className="topbar-mode-tabs" aria-label="Mode navigasi">
+            {allowedTabs.map(({ key, label, shortLabel, id, icon: TabIcon }) => (
+              <button
+                key={key} id={id}
+                className={`mode-tab ${mode === key ? 'active' : ''}`}
+                onClick={() => setMode(key)}
+              >
+                <TabIcon size={14} weight="bold" />
+                <span className="tab-full-label">{label}</span>
+                <span className="tab-short-label">{shortLabel}</span>
+              </button>
+            ))}
+          </nav>
+        </div>
       </header>
 
       {/* ── Main Layout ── */}
