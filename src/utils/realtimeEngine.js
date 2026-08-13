@@ -736,15 +736,23 @@ class RealtimeEngine extends EventEmitter {
           accuracy: accuracy || 0,
         };
 
-        // Simpan posisi terbaru — publish dilakukan oleh timer throttle
+        // Simpan posisi terbaru — broadcast MQTT dilakukan oleh timer throttle
         this._latestGpsPos = posData;
         this.emit('gps:update', { lat: latitude, lon: longitude, accuracy });
 
-        // Langsung kirim posisi PERTAMA tanpa menunggu timer throttle
-        // agar marker langsung muncul di peta saat GPS pertama kali terkunci
+        // ── UPDATE LOKAL LANGSUNG (tanpa broadcast ke MQTT) ──
+        // Ini membuat marker di peta bergerak smooth setiap GPS callback,
+        // tanpa harus menunggu interval throttle yang panjang (8-20 detik).
+        // Parameter broadcast=false agar tidak membebani MQTT.
+        this.updateRiderPosition(riderId, posData, false);
+
+        // Khusus posisi PERTAMA: langsung broadcast juga ke perangkat lain
+        // agar rider langsung muncul di map spectator/admin saat pertama fix GPS
         if (this._firstGpsFix) {
           this._firstGpsFix = false;
-          this.updateRiderPosition(riderId, posData, true);
+          if (navigator.onLine) {
+            this._publishMessage({ type: 'RIDER_UPDATE', rider: this.riders.get(riderId) });
+          }
         }
       },
       (err) => {
@@ -758,11 +766,17 @@ class RealtimeEngine extends EventEmitter {
       }
     );
 
-    // Timer throttle: kirim posisi terbaru ke server & peta setiap `interval` ms
-    // Ini memastikan marker SELALU bergerak saat rider bergerak, tidak menunggu GPS OS
+    // Timer throttle: broadcast posisi terbaru ke perangkat lain (MQTT/BroadcastChannel)
+    // setiap `interval` ms. Ini menghemat bandwidth tanpa mempengaruhi kelancaran marker lokal.
     this._gpsThrottleTimer = setInterval(() => {
       if (this._latestGpsPos) {
-        this.updateRiderPosition(riderId, this._latestGpsPos, true);
+        const rider = this.riders.get(riderId);
+        if (rider && navigator.onLine) {
+          this._publishMessage({ type: 'RIDER_UPDATE', rider });
+        } else if (!navigator.onLine && this._latestGpsPos) {
+          const { lat, lon, ele, speed, accuracy, heading } = this._latestGpsPos;
+          offlineQueue.enqueue({ riderId, lat, lon, ele, speed, accuracy, heading });
+        }
       }
     }, interval);
   }

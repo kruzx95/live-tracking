@@ -368,6 +368,7 @@ export default function LiveMap({ riders = [], route = null, focusedRiderId = nu
       // ── Rider Marker ──
       if (markersRef.current.has(rider.id)) {
         // Update marker posisi & icon yang sudah ada
+        // Gunakan animasi Leaflet bawaan agar perpindahan smooth
         const marker = markersRef.current.get(rider.id);
         marker.setLatLng([rider.lat, rider.lon]);
         marker.setIcon(createRiderIcon(rider));
