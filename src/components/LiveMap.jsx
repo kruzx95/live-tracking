@@ -37,13 +37,13 @@ function createWaypointIcon(type, label = '') {
       <div style="
         display:flex; align-items:center; gap:4px;
         padding: 3px 8px;
-        background: rgba(13,17,23,0.92);
+        background: rgba(255,255,255,0.95);
         border: 2px solid ${cfg.color};
         border-radius: 20px;
         font-family: 'Inter', sans-serif;
         font-size: 11px; font-weight: 700;
-        color: #e6edf3;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.6), 0 0 10px ${cfg.color}55;
+        color: #192022;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.12), 0 0 8px ${cfg.color}44;
         white-space: nowrap;
         cursor: pointer;
       ">

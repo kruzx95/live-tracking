@@ -73,7 +73,7 @@ export default function RoleGate({ onSelectRole }) {
         top: '15%', left: '50%',
         transform: 'translate(-50%, -50%)',
         width: 400, height: 400,
-        background: 'radial-gradient(circle, rgba(0,198,255,0.08) 0%, transparent 70%)',
+        background: 'radial-gradient(circle, rgba(115,191,199,0.12) 0%, transparent 70%)',
         pointerEvents: 'none',
       }} />
 
@@ -117,7 +117,7 @@ export default function RoleGate({ onSelectRole }) {
           onClick={() => onSelectRole('rider')}
           style={{
             background: 'var(--clr-bg-card)',
-            border: '1px solid rgba(74,222,128,0.35)',
+            border: '1px solid rgba(43,101,79,0.35)',
             borderRadius: 'var(--radius-lg)',
             padding: 'var(--space-4) var(--space-5)',
             cursor: 'pointer',
@@ -128,16 +128,16 @@ export default function RoleGate({ onSelectRole }) {
             alignItems: 'center',
             gap: 'var(--space-4)',
             width: '100%',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+            boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
           }}
         >
           <div style={{
             width: 48, height: 48,
-            background: 'rgba(74,222,128,0.15)',
+            background: 'rgba(43,101,79,0.1)',
             borderRadius: 14,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: '1.6rem',
-            border: '1px solid rgba(74,222,128,0.3)',
+            border: '1px solid rgba(43,101,79,0.25)',
             flexShrink: 0,
           }}>
             🚴
@@ -152,8 +152,8 @@ export default function RoleGate({ onSelectRole }) {
           </div>
           <div style={{
             fontSize: 'var(--text-xs)', color: 'var(--clr-accent)', fontWeight: 700,
-            padding: '6px 12px', background: 'rgba(74,222,128,0.1)', borderRadius: 'var(--radius-full)',
-            border: '1px solid rgba(74,222,128,0.3)', flexShrink: 0,
+            padding: '6px 12px', background: 'rgba(43,101,79,0.08)', borderRadius: 'var(--radius-full)',
+            border: '1px solid rgba(43,101,79,0.25)', flexShrink: 0,
           }}>
             Masuk →
           </div>
@@ -165,7 +165,7 @@ export default function RoleGate({ onSelectRole }) {
           onClick={() => onSelectRole('spectator')}
           style={{
             background: 'var(--clr-bg-card)',
-            border: '1px solid rgba(0,198,255,0.35)',
+            border: '1px solid rgba(115,191,199,0.4)',
             borderRadius: 'var(--radius-lg)',
             padding: 'var(--space-4) var(--space-5)',
             cursor: 'pointer',
@@ -176,16 +176,16 @@ export default function RoleGate({ onSelectRole }) {
             alignItems: 'center',
             gap: 'var(--space-4)',
             width: '100%',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+            boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
           }}
         >
           <div style={{
             width: 48, height: 48,
-            background: 'rgba(0,198,255,0.12)',
+            background: 'rgba(115,191,199,0.1)',
             borderRadius: 14,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: '1.6rem',
-            border: '1px solid rgba(0,198,255,0.3)',
+            border: '1px solid rgba(115,191,199,0.3)',
             flexShrink: 0,
           }}>
             👁️
@@ -200,8 +200,8 @@ export default function RoleGate({ onSelectRole }) {
           </div>
           <div style={{
             fontSize: 'var(--text-xs)', color: 'var(--clr-brand)', fontWeight: 700,
-            padding: '6px 12px', background: 'rgba(0,198,255,0.1)', borderRadius: 'var(--radius-full)',
-            border: '1px solid rgba(0,198,255,0.3)', flexShrink: 0,
+            padding: '6px 12px', background: 'rgba(115,191,199,0.1)', borderRadius: 'var(--radius-full)',
+            border: '1px solid rgba(115,191,199,0.3)', flexShrink: 0,
           }}>
             Peta →
           </div>
@@ -213,7 +213,7 @@ export default function RoleGate({ onSelectRole }) {
           onClick={() => setShowPinModal(true)}
           style={{
             background: 'var(--clr-bg-card)',
-            border: '1px solid rgba(251,191,36,0.4)',
+            border: '1px solid rgba(217,119,6,0.35)',
             borderRadius: 'var(--radius-lg)',
             padding: 'var(--space-4) var(--space-5)',
             cursor: 'pointer',
@@ -224,16 +224,16 @@ export default function RoleGate({ onSelectRole }) {
             alignItems: 'center',
             gap: 'var(--space-4)',
             width: '100%',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+            boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
           }}
         >
           <div style={{
             width: 48, height: 48,
-            background: 'rgba(251,191,36,0.15)',
+            background: 'rgba(217,119,6,0.1)',
             borderRadius: 14,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: '1.6rem',
-            border: '1px solid rgba(251,191,36,0.35)',
+            border: '1px solid rgba(217,119,6,0.3)',
             flexShrink: 0,
           }}>
             🔐
@@ -243,13 +243,13 @@ export default function RoleGate({ onSelectRole }) {
               Panitia / Admin
             </div>
             <div style={{ fontSize: 'var(--text-xs)', color: 'var(--clr-text-muted)', lineHeight: 1.4 }}>
-              Upload rute GPX event & jalankan simulator rider
+              Upload rute GPX event &amp; jalankan simulator rider
             </div>
           </div>
           <div style={{
             fontSize: 'var(--text-xs)', color: 'var(--clr-warning)', fontWeight: 700,
-            padding: '6px 12px', background: 'rgba(251,191,36,0.12)', borderRadius: 'var(--radius-full)',
-            border: '1px solid rgba(251,191,36,0.4)', flexShrink: 0,
+            padding: '6px 12px', background: 'rgba(217,119,6,0.08)', borderRadius: 'var(--radius-full)',
+            border: '1px solid rgba(217,119,6,0.3)', flexShrink: 0,
           }}>
             Masuk 🔐
           </div>
@@ -264,9 +264,9 @@ export default function RoleGate({ onSelectRole }) {
       {showPinModal && (
         <div style={{
           position: 'fixed', inset: 0,
-          background: 'rgba(0,0,0,0.85)',
-          backdropFilter: 'blur(10px)',
-          WebkitBackdropFilter: 'blur(10px)',
+          background: 'rgba(0,0,0,0.4)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           zIndex: 2000,
           padding: 'var(--space-4)',

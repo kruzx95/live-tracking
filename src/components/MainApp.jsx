@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { Bicycle, Eye, GearSix, MapPin, Rows, SquaresFour, Lightning } from '@phosphor-icons/react';
 import LiveMap from './LiveMap';
 import RiderTracker from './RiderTracker';
 import SpectatorDashboard from './SpectatorDashboard';
@@ -27,15 +28,15 @@ const ROLE_DEFAULT_MODE = {
 };
 
 const ROLE_BADGE = {
-  rider:     { label: 'Peserta',  color: '#4ade80', bg: 'rgba(74,222,128,0.12)', emoji: '🚴' },
-  spectator: { label: 'Penonton', color: '#00c6ff', bg: 'rgba(0,198,255,0.1)',   emoji: '👁️' },
-  admin:     { label: 'Admin',    color: '#fbbf24', bg: 'rgba(251,191,36,0.12)', emoji: '⚙️' },
+  rider:     { label: 'Peserta',  color: '#2B654F', bg: 'rgba(43,101,79,0.1)',    emoji: '🚴' },
+  spectator: { label: 'Penonton', color: '#5AAAB3', bg: 'rgba(115,191,199,0.1)', emoji: '👁️' },
+  admin:     { label: 'Admin',    color: '#D97706', bg: 'rgba(217,119,6,0.1)',   emoji: '⚙️' },
 };
 
 const ALL_TABS = [
-  { key: MODES.RIDER,     label: '🚴 Rider',      shortLabel: '🚴', id: 'tab-rider',     roles: ['rider', 'admin'] },
-  { key: MODES.SPECTATOR, label: '👁 Spectator', shortLabel: '👁', id: 'tab-spectator', roles: ['rider', 'spectator', 'admin'] },
-  { key: MODES.ORGANISER, label: '⚙️ Admin',     shortLabel: '⚙️', id: 'tab-organiser', roles: ['admin'] },
+  { key: MODES.RIDER,     label: 'Rider',     shortLabel: 'Rider',  id: 'tab-rider',     roles: ['rider', 'admin'],                icon: Bicycle },
+  { key: MODES.SPECTATOR, label: 'Spectator', shortLabel: 'Live',   id: 'tab-spectator', roles: ['rider', 'spectator', 'admin'],   icon: Eye },
+  { key: MODES.ORGANISER, label: 'Admin',     shortLabel: 'Admin',  id: 'tab-organiser', roles: ['admin'],                         icon: GearSix },
 ];
 
 const DEMO_RIDERS = [
@@ -299,51 +300,51 @@ export default function MainApp({ userRole, onChangeRole }) {
         <div className="topbar-spacer" />
 
         {/* Live / Sync indicator */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--text-xs)' }}>
-          <div
-            className="topbar-sync-badge"
-            style={{
-              display: 'flex', alignItems: 'center', gap: 4,
-              padding: '2px 8px',
-              background: isSyncConnected ? 'rgba(74,222,128,0.1)' : 'rgba(251,191,36,0.1)',
-              border: `1px solid ${isSyncConnected ? 'rgba(74,222,128,0.3)' : 'rgba(251,191,36,0.3)'}`,
-              borderRadius: 'var(--radius-full)',
-              color: isSyncConnected ? 'var(--clr-accent)' : 'var(--clr-warning)',
-              fontWeight: 600,
-              flexShrink: 0,
-            }}
-            title={isSyncConnected ? 'Terhubung ke server sinkronisasi real-time lintas HP' : 'Mencoba terhubung ke server...'}
-          >
-            <div style={{
-              width: 6, height: 6, borderRadius: '50%',
-              background: isSyncConnected ? 'var(--clr-accent)' : 'var(--clr-warning)',
-              animation: 'sos-active-pulse 1.5s ease-in-out infinite',
-              flexShrink: 0,
-            }} />
-            <span className="topbar-sync-text">{isSyncConnected ? '⚡ Realtime Sync' : '🔄 Connecting...'}</span>
-          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--text-xs)' }}>
+            <div
+              className="topbar-sync-badge"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                padding: '2px 8px',
+                background: isSyncConnected ? 'rgba(43,101,79,0.1)' : 'rgba(217,119,6,0.1)',
+                border: `1px solid ${isSyncConnected ? 'rgba(43,101,79,0.3)' : 'rgba(217,119,6,0.3)'}`,
+                borderRadius: 'var(--radius-full)',
+                color: isSyncConnected ? 'var(--clr-accent)' : 'var(--clr-warning)',
+                fontWeight: 600,
+                flexShrink: 0,
+              }}
+              title={isSyncConnected ? 'Terhubung ke server sinkronisasi real-time lintas HP' : 'Mencoba terhubung ke server...'}
+            >
+              <div style={{
+                width: 6, height: 6, borderRadius: '50%',
+                background: isSyncConnected ? 'var(--clr-accent)' : 'var(--clr-warning)',
+                animation: 'sos-active-pulse 1.5s ease-in-out infinite',
+                flexShrink: 0,
+              }} />
+              <span className="topbar-sync-text">{isSyncConnected ? '⚡ Realtime Sync' : '🔄 Connecting...'}</span>
+            </div>
 
-          {/* Tombol QR Code & Bagikan Link */}
-          <button
-            onClick={() => setShowQRModal(true)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 4,
-              padding: '3px 10px',
-              background: 'linear-gradient(135deg, rgba(0,114,255,0.25), rgba(0,198,255,0.25))',
-              border: '1px solid rgba(0,198,255,0.45)',
-              borderRadius: 'var(--radius-full)',
-              color: 'var(--clr-brand)',
-              fontSize: 'var(--text-xs)',
-              fontWeight: 700,
-              cursor: 'pointer',
-              flexShrink: 0,
-              fontFamily: 'var(--font-body)',
-            }}
-            title="Tampilkan QR Code & Bagikan Link Live Event"
-          >
-            📱 Bagikan
-          </button>
-        </div>
+            {/* Tombol QR Code & Bagikan Link */}
+            <button
+              onClick={() => setShowQRModal(true)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                padding: '3px 10px',
+                background: 'rgba(115,191,199,0.15)',
+                border: '1px solid rgba(115,191,199,0.45)',
+                borderRadius: 'var(--radius-full)',
+                color: 'var(--clr-text-brand)',
+                fontSize: 'var(--text-xs)',
+                fontWeight: 700,
+                cursor: 'pointer',
+                flexShrink: 0,
+                fontFamily: 'var(--font-body)',
+              }}
+              title="Tampilkan QR Code & Bagikan Link Live Event"
+            >
+              📱 Bagikan
+            </button>
+          </div>
 
         {/* Role Badge */}
         <button
@@ -364,14 +365,15 @@ export default function MainApp({ userRole, onChangeRole }) {
           {roleBadge.emoji} {roleBadge.label}
         </button>
 
-        {/* Mode Tabs — desktop: teks penuh | mobile: emoji saja */}
+        {/* Mode Tabs — desktop: teks penuh | mobile: icon saja */}
         <nav className="topbar-mode-tabs" aria-label="Mode navigasi">
-          {allowedTabs.map(({ key, label, shortLabel, id }) => (
+          {allowedTabs.map(({ key, label, shortLabel, id, icon: TabIcon }) => (
             <button
               key={key} id={id}
               className={`mode-tab ${mode === key ? 'active' : ''}`}
               onClick={() => setMode(key)}
             >
+              <TabIcon size={14} weight="bold" />
               <span className="tab-full-label">{label}</span>
               <span className="tab-short-label">{shortLabel}</span>
             </button>
@@ -433,9 +435,9 @@ export default function MainApp({ userRole, onChangeRole }) {
         <aside className="side-panel">
           <div className="panel-header">
             <h3>
-              {mode === MODES.RIDER     && '🚴 Rider Panel'}
-              {mode === MODES.SPECTATOR && '👁 Live Leaderboard'}
-              {mode === MODES.ORGANISER && '⚙️ Panel Admin'}
+              {mode === MODES.RIDER     && <span style={{ display:'flex', alignItems:'center', gap:6 }}><Bicycle size={14} weight="bold" /> Rider Panel</span>}
+              {mode === MODES.SPECTATOR && <span style={{ display:'flex', alignItems:'center', gap:6 }}><Eye size={14} weight="bold" /> Live Leaderboard</span>}
+              {mode === MODES.ORGANISER && <span style={{ display:'flex', alignItems:'center', gap:6 }}><GearSix size={14} weight="bold" /> Panel Admin</span>}
             </h3>
             {mode === MODES.SPECTATOR && (
               <span style={{ fontSize: 'var(--text-xs)', color: 'var(--clr-text-muted)', fontFamily: 'var(--font-mono)' }}>
@@ -476,13 +478,11 @@ export default function MainApp({ userRole, onChangeRole }) {
                 className="btn btn-primary btn-block"
                 style={{
                   marginBottom: 'var(--space-4)',
-                  background: 'linear-gradient(135deg, #0072ff, #00c6ff)',
-                  boxShadow: '0 4px 14px rgba(0, 198, 255, 0.3)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                   fontWeight: 800,
                 }}
               >
-                📱 QR Code & Bagikan Link Live Event
+                📱 QR Code &amp; Bagikan Link Live Event
               </button>
 
               {/* Event Replay Player & Recording */}
@@ -905,7 +905,7 @@ export default function MainApp({ userRole, onChangeRole }) {
           className={`mobile-view-btn ${mobileViewMode === 'map' ? 'active' : ''}`}
           onClick={() => handleSwitchMobileView('map')}
         >
-          <span className="nav-icon">🗺️</span>
+          <span className="nav-icon"><MapPin size={20} weight="duotone" /></span>
           <span>Peta</span>
         </button>
 
@@ -915,7 +915,7 @@ export default function MainApp({ userRole, onChangeRole }) {
           className={`mobile-view-btn nav-center ${mobileViewMode === 'split' ? 'active' : ''}`}
           onClick={() => handleSwitchMobileView('split')}
         >
-          <span className="nav-icon">⚡</span>
+          <span className="nav-icon"><Lightning size={22} weight="duotone" /></span>
           <span>Split</span>
         </button>
 
@@ -926,7 +926,7 @@ export default function MainApp({ userRole, onChangeRole }) {
           onClick={() => handleSwitchMobileView('panel')}
         >
           <span className="nav-icon">
-            {mode === MODES.ORGANISER ? '⚙️' : mode === MODES.RIDER ? '🚴' : '📊'}
+            {mode === MODES.ORGANISER ? <GearSix size={20} weight="duotone" /> : mode === MODES.RIDER ? <Bicycle size={20} weight="duotone" /> : <Rows size={20} weight="duotone" />}
           </span>
           <span>
             {mode === MODES.ORGANISER ? 'Admin' : mode === MODES.RIDER ? 'Rider' : 'Board'}
