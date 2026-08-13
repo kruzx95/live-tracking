@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { DeviceMobile, DownloadSimple, ArrowSquareOut } from '@phosphor-icons/react';
 
 export default function PWAInstallBanner() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -54,7 +55,7 @@ export default function PWAInstallBanner() {
         <div style={{
           width: '100%',
           maxWidth: 420,
-          background: 'linear-gradient(135deg, rgba(0,198,255,0.12), rgba(0,114,255,0.12))',
+          background: 'rgba(115,191,199,0.1)',
           border: '1px solid var(--clr-border-glow)',
           borderRadius: 'var(--radius-lg)',
           padding: 'var(--space-3) var(--space-4)',
@@ -62,10 +63,19 @@ export default function PWAInstallBanner() {
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: 'var(--space-3)',
-          boxShadow: '0 4px 16px rgba(0,198,255,0.1)',
+          boxShadow: '0 2px 12px rgba(115,191,199,0.15)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-            <span style={{ fontSize: '1.5rem' }}>📱</span>
+            <div style={{
+              width: 40, height: 40,
+              borderRadius: 10,
+              background: 'linear-gradient(135deg, #5AAAB3, #73BFC7)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+              boxShadow: '0 2px 8px rgba(115,191,199,0.3)',
+            }}>
+              <DeviceMobile size={22} weight="duotone" color="white" />
+            </div>
             <div>
               <div style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--clr-brand)' }}>
                 Install Aplikasi CycloTrack
@@ -80,15 +90,15 @@ export default function PWAInstallBanner() {
             onClick={handleInstallClick}
             className="btn btn-primary btn-sm"
             style={{
-              padding: '6px 12px',
+              padding: '6px 14px',
               fontSize: 'var(--text-xs)',
               fontWeight: 700,
               flexShrink: 0,
-              boxShadow: '0 0 12px rgba(0,198,255,0.3)',
+              display: 'flex', alignItems: 'center', gap: 5,
             }}
             id="pwa-install-btn"
           >
-            📲 Install
+            <DownloadSimple size={14} weight="bold" /> Install
           </button>
         </div>
       )}
@@ -117,7 +127,16 @@ export default function PWAInstallBanner() {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ fontSize: '2.5rem', marginBottom: 'var(--space-3)' }}>📱</div>
+          <div style={{
+            width: 56, height: 56,
+            margin: '0 auto var(--space-3)',
+            borderRadius: 14,
+            background: 'linear-gradient(135deg, #5AAAB3, #73BFC7)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 4px 16px rgba(115,191,199,0.3)',
+          }}>
+            <DeviceMobile size={30} weight="duotone" color="white" />
+          </div>
             <h3 style={{ fontSize: 'var(--text-md)', fontWeight: 800, marginBottom: 'var(--space-2)' }}>
               Cara Install di iPhone / iPad
             </h3>

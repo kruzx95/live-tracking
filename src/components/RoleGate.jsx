@@ -8,6 +8,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { Bicycle, Eye, Lock, ShieldCheck } from '@phosphor-icons/react';
 import PWAInstallBanner from './PWAInstallBanner';
 import CycloTrackLogo from './CycloTrackLogo';
 import { engine } from '../utils/realtimeEngine';
@@ -136,11 +137,11 @@ export default function RoleGate({ onSelectRole }) {
             background: 'rgba(43,101,79,0.1)',
             borderRadius: 14,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '1.6rem',
             border: '1px solid rgba(43,101,79,0.25)',
             flexShrink: 0,
+            color: '#2B654F',
           }}>
-            🚴
+            <Bicycle size={26} weight="duotone" />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 'var(--text-md)', fontWeight: 800, fontFamily: 'var(--font-display)', color: 'var(--clr-accent)', marginBottom: 2 }}>
@@ -184,11 +185,11 @@ export default function RoleGate({ onSelectRole }) {
             background: 'rgba(115,191,199,0.1)',
             borderRadius: 14,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '1.6rem',
             border: '1px solid rgba(115,191,199,0.3)',
             flexShrink: 0,
+            color: '#5AAAB3',
           }}>
-            👁️
+            <Eye size={26} weight="duotone" />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 'var(--text-md)', fontWeight: 800, fontFamily: 'var(--font-display)', color: 'var(--clr-brand)', marginBottom: 2 }}>
@@ -232,11 +233,11 @@ export default function RoleGate({ onSelectRole }) {
             background: 'rgba(217,119,6,0.1)',
             borderRadius: 14,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '1.6rem',
             border: '1px solid rgba(217,119,6,0.3)',
             flexShrink: 0,
+            color: '#D97706',
           }}>
-            🔐
+            <ShieldCheck size={26} weight="duotone" />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 'var(--text-md)', fontWeight: 800, fontFamily: 'var(--font-display)', color: 'var(--clr-warning)', marginBottom: 2 }}>
@@ -285,7 +286,9 @@ export default function RoleGate({ onSelectRole }) {
             animation: pinShake ? 'shake 0.4s ease' : 'fade-in 0.3s ease',
             boxShadow: 'var(--shadow-lg)',
           }}>
-            <div style={{ fontSize: '2.4rem', marginBottom: 'var(--space-2)' }}>🔐</div>
+            <div style={{ fontSize: '2.4rem', marginBottom: 'var(--space-2)' }}>
+              <ShieldCheck size={40} weight="duotone" color="#D97706" />
+            </div>
             <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)', fontWeight: 800, marginBottom: 4 }}>
               Akses Admin / Panitia
             </h2>
