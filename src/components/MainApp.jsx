@@ -619,25 +619,66 @@ export default function MainApp({ userRole, onChangeRole }) {
 
               {/* Master List Peserta Resmi (BIB & PIN) */}
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
-                  <div className="label">Master Peserta Resmi ({officialParticipants.length})</div>
-                  <button
-                    className="btn btn-ghost btn-sm"
-                    style={{ fontSize: '11px', color: 'var(--clr-accent)' }}
-                    onClick={() => {
-                      const demoList = [
-                        { bib: '101', name: 'Budi Santoso', pin: '1234', color: '#00c6ff' },
-                        { bib: '102', name: 'Siti Rahayu', pin: '1234', color: '#4ade80' },
-                        { bib: '103', name: 'Dedi Kurniawan', pin: '1234', color: '#fbbf24' },
-                        { bib: '104', name: 'Agus Prawoto', pin: '1234', color: '#a78bfa' },
-                        { bib: '105', name: 'Rina Wulandari', pin: '1234', color: '#f472b6' },
-                      ];
-                      engine.setParticipants(demoList, true);
-                      addToast('Daftar BIB 101–105 berhasil di-generate!', 'success', '⚡');
-                    }}
-                  >
-                    ⚡ Auto BIB 101–105
-                  </button>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-2)', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+                  <div className="label" style={{ marginBottom: 0 }}>Master Peserta Resmi ({officialParticipants.length})</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                    {officialParticipants.length > 0 && (
+                      <button
+                        id="copy-all-participants-btn"
+                        className="btn btn-ghost btn-sm"
+                        style={{ fontSize: '11px', color: 'var(--clr-brand)', display: 'flex', alignItems: 'center', gap: 4 }}
+                        onClick={() => {
+                          const text = officialParticipants
+                            .map((p, idx) => `${idx + 1}. BIB #${p.bib} | Nama: ${p.name} | PIN: ${p.pin}`)
+                            .join('\n');
+                          const header = `📋 DAFTAR PESERTA RESMI CYCLOTRACK (${officialParticipants.length} Peserta):\n\n`;
+                          const fullText = header + text;
+                          if (navigator.clipboard && navigator.clipboard.writeText) {
+                            navigator.clipboard.writeText(fullText).then(() => {
+                              addToast(`${officialParticipants.length} peserta berhasil disalin!`, 'success', '📋');
+                            }).catch(() => {
+                              // Fallback jika API clipboard gagal
+                              const textarea = document.createElement('textarea');
+                              textarea.value = fullText;
+                              document.body.appendChild(textarea);
+                              textarea.select();
+                              document.execCommand('copy');
+                              document.body.removeChild(textarea);
+                              addToast(`${officialParticipants.length} peserta berhasil disalin!`, 'success', '📋');
+                            });
+                          } else {
+                            const textarea = document.createElement('textarea');
+                            textarea.value = fullText;
+                            document.body.appendChild(textarea);
+                            textarea.select();
+                            document.execCommand('copy');
+                            document.body.removeChild(textarea);
+                            addToast(`${officialParticipants.length} peserta berhasil disalin!`, 'success', '📋');
+                          }
+                        }}
+                        title="Salin seluruh daftar peserta (BIB, Nama, PIN) ke clipboard"
+                      >
+                        📋 Salin Semua List
+                      </button>
+                    )}
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      style={{ fontSize: '11px', color: 'var(--clr-accent)' }}
+                      onClick={() => {
+                        const demoList = [
+                          { bib: '101', name: 'Budi Santoso', pin: '1234', color: '#00c6ff' },
+                          { bib: '102', name: 'Siti Rahayu', pin: '1234', color: '#4ade80' },
+                          { bib: '103', name: 'Dedi Kurniawan', pin: '1234', color: '#fbbf24' },
+                          { bib: '104', name: 'Agus Prawoto', pin: '1234', color: '#a78bfa' },
+                          { bib: '105', name: 'Rina Wulandari', pin: '1234', color: '#f472b6' },
+                        ];
+                        engine.setParticipants(demoList, true);
+                        addToast('Daftar BIB 101–105 berhasil di-generate!', 'success', '⚡');
+                      }}
+                    >
+                      ⚡ Auto BIB 101–105
+                    </button>
+                  </div>
                 </div>
 
                 {/* Form Tambah BIB Baru */}
