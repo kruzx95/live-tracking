@@ -74,7 +74,7 @@ export default function RoleGate({ onSelectRole }) {
         top: '15%', left: '50%',
         transform: 'translate(-50%, -50%)',
         width: 400, height: 400,
-        background: 'radial-gradient(circle, rgba(115,191,199,0.12) 0%, transparent 70%)',
+        background: 'radial-gradient(circle, rgba(75,139,59,0.12) 0%, transparent 70%)',
         pointerEvents: 'none',
       }} />
 
@@ -118,7 +118,7 @@ export default function RoleGate({ onSelectRole }) {
           onClick={() => onSelectRole('rider')}
           style={{
             background: 'var(--clr-bg-card)',
-            border: '1px solid rgba(43,101,79,0.35)',
+            border: '1px solid rgba(46,58,36,0.3)',
             borderRadius: 'var(--radius-lg)',
             padding: 'var(--space-4) var(--space-5)',
             cursor: 'pointer',
@@ -134,12 +134,12 @@ export default function RoleGate({ onSelectRole }) {
         >
           <div style={{
             width: 48, height: 48,
-            background: 'rgba(43,101,79,0.1)',
+            background: 'rgba(46,58,36,0.1)',
             borderRadius: 14,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            border: '1px solid rgba(43,101,79,0.25)',
+            border: '1px solid rgba(46,58,36,0.25)',
             flexShrink: 0,
-            color: '#2B654F',
+            color: '#2E3A24',
           }}>
             <Bicycle size={26} weight="duotone" />
           </div>
@@ -153,8 +153,8 @@ export default function RoleGate({ onSelectRole }) {
           </div>
           <div style={{
             fontSize: 'var(--text-xs)', color: 'var(--clr-accent)', fontWeight: 700,
-            padding: '6px 12px', background: 'rgba(43,101,79,0.08)', borderRadius: 'var(--radius-full)',
-            border: '1px solid rgba(43,101,79,0.25)', flexShrink: 0,
+            padding: '6px 12px', background: 'rgba(46,58,36,0.08)', borderRadius: 'var(--radius-full)',
+            border: '1px solid rgba(46,58,36,0.25)', flexShrink: 0,
           }}>
             Masuk →
           </div>
@@ -166,7 +166,7 @@ export default function RoleGate({ onSelectRole }) {
           onClick={() => onSelectRole('spectator')}
           style={{
             background: 'var(--clr-bg-card)',
-            border: '1px solid rgba(115,191,199,0.4)',
+            border: '1px solid rgba(75,139,59,0.35)',
             borderRadius: 'var(--radius-lg)',
             padding: 'var(--space-4) var(--space-5)',
             cursor: 'pointer',
@@ -182,12 +182,12 @@ export default function RoleGate({ onSelectRole }) {
         >
           <div style={{
             width: 48, height: 48,
-            background: 'rgba(115,191,199,0.1)',
+            background: 'rgba(75,139,59,0.1)',
             borderRadius: 14,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            border: '1px solid rgba(115,191,199,0.3)',
+            border: '1px solid rgba(75,139,59,0.25)',
             flexShrink: 0,
-            color: '#5AAAB3',
+            color: '#4B8B3B',
           }}>
             <Eye size={26} weight="duotone" />
           </div>
@@ -201,8 +201,8 @@ export default function RoleGate({ onSelectRole }) {
           </div>
           <div style={{
             fontSize: 'var(--text-xs)', color: 'var(--clr-brand)', fontWeight: 700,
-            padding: '6px 12px', background: 'rgba(115,191,199,0.1)', borderRadius: 'var(--radius-full)',
-            border: '1px solid rgba(115,191,199,0.3)', flexShrink: 0,
+            padding: '6px 12px', background: 'rgba(75,139,59,0.1)', borderRadius: 'var(--radius-full)',
+            border: '1px solid rgba(75,139,59,0.25)', flexShrink: 0,
           }}>
             Peta →
           </div>

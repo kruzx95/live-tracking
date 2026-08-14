@@ -11,13 +11,13 @@ export default function CycloTrackLogo({ size = 32 }) {
         width: size,
         height: size,
         borderRadius: Math.round(size * 0.28),
-        background: 'linear-gradient(135deg, #5AAAB3, #73BFC7)',
+        background: 'linear-gradient(135deg, #2E3A24, #4B8B3B)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         userSelect: 'none',
         flexShrink: 0,
-        boxShadow: '0 2px 8px rgba(115, 191, 199, 0.4)',
+        boxShadow: '0 2px 8px rgba(75, 139, 59, 0.4)',
         padding: padding,
       }}
     >

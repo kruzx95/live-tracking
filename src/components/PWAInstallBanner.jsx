@@ -55,7 +55,7 @@ export default function PWAInstallBanner() {
         <div style={{
           width: '100%',
           maxWidth: 420,
-          background: 'rgba(115,191,199,0.1)',
+          background: 'rgba(75,139,59,0.08)',
           border: '1px solid var(--clr-border-glow)',
           borderRadius: 'var(--radius-lg)',
           padding: 'var(--space-3) var(--space-4)',
@@ -63,16 +63,16 @@ export default function PWAInstallBanner() {
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: 'var(--space-3)',
-          boxShadow: '0 2px 12px rgba(115,191,199,0.15)',
+          boxShadow: '0 2px 12px rgba(75,139,59,0.12)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
             <div style={{
               width: 40, height: 40,
               borderRadius: 10,
-              background: 'linear-gradient(135deg, #5AAAB3, #73BFC7)',
+              background: 'linear-gradient(135deg, #2E3A24, #4B8B3B)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               flexShrink: 0,
-              boxShadow: '0 2px 8px rgba(115,191,199,0.3)',
+              boxShadow: '0 2px 8px rgba(75,139,59,0.3)',
             }}>
               <DeviceMobile size={22} weight="duotone" color="white" />
             </div>
@@ -131,9 +131,9 @@ export default function PWAInstallBanner() {
             width: 56, height: 56,
             margin: '0 auto var(--space-3)',
             borderRadius: 14,
-            background: 'linear-gradient(135deg, #5AAAB3, #73BFC7)',
+            background: 'linear-gradient(135deg, #2E3A24, #4B8B3B)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 4px 16px rgba(115,191,199,0.3)',
+            boxShadow: '0 4px 16px rgba(75,139,59,0.3)',
           }}>
             <DeviceMobile size={30} weight="duotone" color="white" />
           </div>

@@ -28,8 +28,8 @@ const ROLE_DEFAULT_MODE = {
 };
 
 const ROLE_BADGE = {
-  rider:     { label: 'Peserta',  color: '#2B654F', bg: 'rgba(43,101,79,0.1)',    emoji: '🚴' },
-  spectator: { label: 'Penonton', color: '#5AAAB3', bg: 'rgba(115,191,199,0.1)', emoji: '👁️' },
+  rider:     { label: 'Peserta',  color: '#2E3A24', bg: 'rgba(46,58,36,0.1)',    emoji: '🚴' },
+  spectator: { label: 'Penonton', color: '#4B8B3B', bg: 'rgba(75,139,59,0.1)',   emoji: '👁️' },
   admin:     { label: 'Admin',    color: '#D97706', bg: 'rgba(217,119,6,0.1)',   emoji: '⚙️' },
 };
 
