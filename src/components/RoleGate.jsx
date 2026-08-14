@@ -8,7 +8,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Bicycle, Eye, Lock, ShieldCheck } from '@phosphor-icons/react';
+import MaterialIcon from './MaterialIcon';
 import PWAInstallBanner from './PWAInstallBanner';
 import CycloTrackLogo from './CycloTrackLogo';
 import { engine } from '../utils/realtimeEngine';
@@ -141,7 +141,7 @@ export default function RoleGate({ onSelectRole }) {
             flexShrink: 0,
             color: '#2E3A24',
           }}>
-            <Bicycle size={26} weight="duotone" />
+            <MaterialIcon name="directions_bike" size={28} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 'var(--text-md)', fontWeight: 800, fontFamily: 'var(--font-display)', color: 'var(--clr-accent)', marginBottom: 2 }}>
@@ -189,7 +189,7 @@ export default function RoleGate({ onSelectRole }) {
             flexShrink: 0,
             color: '#4B8B3B',
           }}>
-            <Eye size={26} weight="duotone" />
+            <MaterialIcon name="visibility" size={28} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 'var(--text-md)', fontWeight: 800, fontFamily: 'var(--font-display)', color: 'var(--clr-brand)', marginBottom: 2 }}>
@@ -237,7 +237,7 @@ export default function RoleGate({ onSelectRole }) {
             flexShrink: 0,
             color: '#D97706',
           }}>
-            <ShieldCheck size={26} weight="duotone" />
+            <MaterialIcon name="admin_panel_settings" size={28} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 'var(--text-md)', fontWeight: 800, fontFamily: 'var(--font-display)', color: 'var(--clr-warning)', marginBottom: 2 }}>
@@ -286,8 +286,8 @@ export default function RoleGate({ onSelectRole }) {
             animation: pinShake ? 'shake 0.4s ease' : 'fade-in 0.3s ease',
             boxShadow: 'var(--shadow-lg)',
           }}>
-            <div style={{ fontSize: '2.4rem', marginBottom: 'var(--space-2)' }}>
-              <ShieldCheck size={40} weight="duotone" color="#D97706" />
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 'var(--space-2)' }}>
+              <MaterialIcon name="admin_panel_settings" size={44} color="#D97706" />
             </div>
             <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)', fontWeight: 800, marginBottom: 4 }}>
               Akses Admin / Panitia

@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Bicycle, Eye, GearSix, MapPin, Rows, SquaresFour, Lightning } from '@phosphor-icons/react';
+import MaterialIcon from './MaterialIcon';
 import LiveMap from './LiveMap';
 import RiderTracker from './RiderTracker';
 import SpectatorDashboard from './SpectatorDashboard';
@@ -28,15 +28,15 @@ const ROLE_DEFAULT_MODE = {
 };
 
 const ROLE_BADGE = {
-  rider:     { label: 'Peserta',  color: '#2E3A24', bg: 'rgba(46,58,36,0.1)',    emoji: '🚴' },
-  spectator: { label: 'Penonton', color: '#4B8B3B', bg: 'rgba(75,139,59,0.1)',   emoji: '👁️' },
-  admin:     { label: 'Admin',    color: '#D97706', bg: 'rgba(217,119,6,0.1)',   emoji: '⚙️' },
+  rider:     { label: 'Peserta',  color: '#2E3A24', bg: 'rgba(46,58,36,0.1)',    icon: 'directions_bike' },
+  spectator: { label: 'Penonton', color: '#4B8B3B', bg: 'rgba(75,139,59,0.1)',   icon: 'visibility' },
+  admin:     { label: 'Admin',    color: '#D97706', bg: 'rgba(217,119,6,0.1)',   icon: 'admin_panel_settings' },
 };
 
 const ALL_TABS = [
-  { key: MODES.RIDER,     label: 'Rider',     shortLabel: 'Rider',  id: 'tab-rider',     roles: ['rider', 'admin'],                icon: Bicycle },
-  { key: MODES.SPECTATOR, label: 'Spectator', shortLabel: 'Live',   id: 'tab-spectator', roles: ['rider', 'spectator', 'admin'],   icon: Eye },
-  { key: MODES.ORGANISER, label: 'Admin',     shortLabel: 'Admin',  id: 'tab-organiser', roles: ['admin'],                         icon: GearSix },
+  { key: MODES.RIDER,     label: 'Rider',     shortLabel: 'Rider',  id: 'tab-rider',     roles: ['rider', 'admin'],                icon: 'directions_bike' },
+  { key: MODES.SPECTATOR, label: 'Spectator', shortLabel: 'Live',   id: 'tab-spectator', roles: ['rider', 'spectator', 'admin'],   icon: 'visibility' },
+  { key: MODES.ORGANISER, label: 'Admin',     shortLabel: 'Admin',  id: 'tab-organiser', roles: ['admin'],                         icon: 'settings' },
 ];
 
 const DEMO_RIDERS = [
@@ -321,7 +321,7 @@ export default function MainApp({ userRole, onChangeRole }) {
             onClick={() => setShowQRModal(true)}
             title="Tampilkan QR Code & Bagikan Link Live Event"
           >
-            <span>📱</span>
+            <MaterialIcon name="qr_code_2" size={16} />
             <span className="share-label">Bagikan</span>
           </button>
 
@@ -337,19 +337,19 @@ export default function MainApp({ userRole, onChangeRole }) {
               color: roleBadge.color,
             }}
           >
-            <span>{roleBadge.emoji}</span>
+            <MaterialIcon name={roleBadge.icon} size={16} />
             <span className="role-label">{roleBadge.label}</span>
           </button>
 
           {/* Mode Navigation Tabs */}
           <nav className="topbar-mode-tabs" aria-label="Mode navigasi">
-            {allowedTabs.map(({ key, label, shortLabel, id, icon: TabIcon }) => (
+            {allowedTabs.map(({ key, label, shortLabel, id, icon }) => (
               <button
                 key={key} id={id}
                 className={`mode-tab ${mode === key ? 'active' : ''}`}
                 onClick={() => setMode(key)}
               >
-                <TabIcon size={14} weight="bold" />
+                <MaterialIcon name={icon} size={16} />
                 <span className="tab-full-label">{label}</span>
                 <span className="tab-short-label">{shortLabel}</span>
               </button>
@@ -412,9 +412,9 @@ export default function MainApp({ userRole, onChangeRole }) {
         <aside className="side-panel">
           <div className="panel-header">
             <h3>
-              {mode === MODES.RIDER     && <span style={{ display:'flex', alignItems:'center', gap:6 }}><Bicycle size={14} weight="bold" /> Rider Panel</span>}
-              {mode === MODES.SPECTATOR && <span style={{ display:'flex', alignItems:'center', gap:6 }}><Eye size={14} weight="bold" /> Live Leaderboard</span>}
-              {mode === MODES.ORGANISER && <span style={{ display:'flex', alignItems:'center', gap:6 }}><GearSix size={14} weight="bold" /> Panel Admin</span>}
+              {mode === MODES.RIDER     && <span style={{ display:'flex', alignItems:'center', gap:6 }}><MaterialIcon name="directions_bike" size={18} /> Rider Panel</span>}
+              {mode === MODES.SPECTATOR && <span style={{ display:'flex', alignItems:'center', gap:6 }}><MaterialIcon name="visibility" size={18} /> Live Leaderboard</span>}
+              {mode === MODES.ORGANISER && <span style={{ display:'flex', alignItems:'center', gap:6 }}><MaterialIcon name="settings" size={18} /> Panel Admin</span>}
             </h3>
             {mode === MODES.SPECTATOR && (
               <span style={{ fontSize: 'var(--text-xs)', color: 'var(--clr-text-muted)', fontFamily: 'var(--font-mono)' }}>
@@ -923,7 +923,7 @@ export default function MainApp({ userRole, onChangeRole }) {
           className={`mobile-view-btn ${mobileViewMode === 'map' ? 'active' : ''}`}
           onClick={() => handleSwitchMobileView('map')}
         >
-          <span className="nav-icon"><MapPin size={20} weight="duotone" /></span>
+          <span className="nav-icon"><MaterialIcon name="map" size={22} /></span>
           <span>Peta</span>
         </button>
 
@@ -933,7 +933,7 @@ export default function MainApp({ userRole, onChangeRole }) {
           className={`mobile-view-btn nav-center ${mobileViewMode === 'split' ? 'active' : ''}`}
           onClick={() => handleSwitchMobileView('split')}
         >
-          <span className="nav-icon"><Lightning size={22} weight="duotone" /></span>
+          <span className="nav-icon"><MaterialIcon name="splitscreen" size={22} /></span>
           <span>Split</span>
         </button>
 
@@ -944,7 +944,7 @@ export default function MainApp({ userRole, onChangeRole }) {
           onClick={() => handleSwitchMobileView('panel')}
         >
           <span className="nav-icon">
-            {mode === MODES.ORGANISER ? <GearSix size={20} weight="duotone" /> : mode === MODES.RIDER ? <Bicycle size={20} weight="duotone" /> : <Rows size={20} weight="duotone" />}
+            <MaterialIcon name={mode === MODES.ORGANISER ? 'settings' : mode === MODES.RIDER ? 'directions_bike' : 'leaderboard'} size={22} />
           </span>
           <span>
             {mode === MODES.ORGANISER ? 'Admin' : mode === MODES.RIDER ? 'Rider' : 'Board'}

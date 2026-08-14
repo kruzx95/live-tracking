@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import MaterialIcon from './MaterialIcon';
 import replayEngine from '../utils/replayEngine';
 import screenRecorder from '../utils/screenRecorder';
 
@@ -169,12 +170,12 @@ export default function ReplayControls({ onReplayFrameUpdate, _isMobile = false 
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
           <div style={{
             width: 36, height: 36, borderRadius: 10,
-            background: 'rgba(0, 198, 255, 0.12)',
-            border: '1px solid rgba(0, 198, 255, 0.3)',
+            background: 'rgba(75, 139, 59, 0.12)',
+            border: '1px solid rgba(75, 139, 59, 0.3)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '1.2rem', flexShrink: 0,
+            color: 'var(--clr-brand)', flexShrink: 0,
           }}>
-            📼
+            <MaterialIcon name="videocam" size={20} />
           </div>
           <div>
             <div style={{ fontSize: 'var(--text-xs)', fontWeight: 800, color: 'var(--clr-brand)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
@@ -228,7 +229,8 @@ export default function ReplayControls({ onReplayFrameUpdate, _isMobile = false 
             background: isRecording ? '#ff4d6d' : '#8b949e',
             animation: isRecording ? 'sos-active-pulse 1s ease-in-out infinite' : 'none',
           }} />
-          <span>{isRecording ? 'Stop Data' : '🔴 Rekam Data'}</span>
+          <MaterialIcon name={isRecording ? 'stop' : 'fiber_manual_record'} size={15} color={isRecording ? '#ff4d6d' : 'var(--clr-danger)'} />
+          <span>{isRecording ? 'Stop Data' : 'Rekam Data'}</span>
         </button>
 
         {/* Button 2: Rekam Video Layar */}
@@ -250,7 +252,8 @@ export default function ReplayControls({ onReplayFrameUpdate, _isMobile = false 
             background: isVideoRecording ? '#ff4d6d' : 'var(--clr-brand)',
             animation: isVideoRecording ? 'sos-active-pulse 1s ease-in-out infinite' : 'none',
           }} />
-          <span>{isVideoRecording ? `Stop Video (${formatTimeMs(videoElapsedMs)})` : '📹 Rekam Video'}</span>
+          <MaterialIcon name={isVideoRecording ? 'stop' : 'screen_record'} size={15} color={isVideoRecording ? '#ff4d6d' : 'var(--clr-brand)'} />
+          <span>{isVideoRecording ? `Stop Video (${formatTimeMs(videoElapsedMs)})` : 'Rekam Video'}</span>
         </button>
 
         {/* Button 3: Buka File Replay JSON */}
@@ -267,7 +270,8 @@ export default function ReplayControls({ onReplayFrameUpdate, _isMobile = false 
           }}
           title="Buka File Rekaman Event (.json)"
         >
-          <span>📂 Buka Replay</span>
+          <MaterialIcon name="folder_open" size={15} />
+          <span>Buka Replay</span>
         </button>
         <input
           ref={fileInputRef}
@@ -292,7 +296,8 @@ export default function ReplayControls({ onReplayFrameUpdate, _isMobile = false 
             }}
             title="Unduh File Rekaman Event (.json)"
           >
-            <span>💾 Unduh .json</span>
+            <MaterialIcon name="download" size={15} />
+            <span>Unduh .json</span>
           </button>
         ) : (
           <div style={{
@@ -357,17 +362,28 @@ export default function ReplayControls({ onReplayFrameUpdate, _isMobile = false 
                   display: 'flex', alignItems: 'center', gap: 6,
                 }}
               >
-                {isPlaying ? '⏸️ Pause' : '▶️ Play Replay'}
+                {isPlaying ? (
+                  <>
+                    <MaterialIcon name="pause" size={16} />
+                    <span>Pause</span>
+                  </>
+                ) : (
+                  <>
+                    <MaterialIcon name="play_arrow" size={16} />
+                    <span>Play Replay</span>
+                  </>
+                )}
               </button>
 
               {isPlaying && (
                 <button
                   onClick={handleStopPlay}
                   className="btn btn-ghost btn-sm"
-                  style={{ padding: '4px 10px', fontSize: 'var(--text-xs)', color: 'var(--clr-danger)' }}
+                  style={{ padding: '4px 10px', fontSize: 'var(--text-xs)', color: 'var(--clr-danger)', display: 'flex', alignItems: 'center', gap: 4 }}
                   title="Hentikan Replay"
                 >
-                  ⏹ Stop
+                  <MaterialIcon name="stop" size={16} />
+                  <span>Stop</span>
                 </button>
               )}
             </div>

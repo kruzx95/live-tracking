@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import MaterialIcon from './MaterialIcon';
 import { engine, TRANSMISSION_INTERVAL } from '../utils/realtimeEngine';
 import { offlineQueue } from '../utils/offlineQueue';
 import { isOffCourse } from '../utils/gpxParser';
@@ -305,8 +306,8 @@ export default function RiderTracker({ route, riderId, riderName, onRiderChange 
           style={{
             width: '100%',
             padding: 'var(--space-2) var(--space-3)',
-            background: 'rgba(0, 198, 255, 0.1)',
-            border: '1px solid rgba(0, 198, 255, 0.3)',
+            background: 'rgba(75, 139, 59, 0.1)',
+            border: '1px solid rgba(75, 139, 59, 0.3)',
             borderRadius: 'var(--radius-md)',
             color: 'var(--clr-brand)',
             fontSize: 'var(--text-xs)',
@@ -315,7 +316,8 @@ export default function RiderTracker({ route, riderId, riderName, onRiderChange 
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
           }}
         >
-          🔋 Tips GPS Layar Mati (Kantong Jersey)
+          <MaterialIcon name="battery_charging_full" size={16} />
+          <span>Tips GPS Layar Mati (Kantong Jersey)</span>
         </button>
 
         {/* Modal Panduan GPS Background (Login View) */}
@@ -385,8 +387,8 @@ export default function RiderTracker({ route, riderId, riderName, onRiderChange 
         style={{
           width: '100%',
           padding: 'var(--space-2) var(--space-3)',
-          background: 'rgba(0, 198, 255, 0.1)',
-          border: '1px solid rgba(0, 198, 255, 0.3)',
+          background: 'rgba(75, 139, 59, 0.1)',
+          border: '1px solid rgba(75, 139, 59, 0.3)',
           borderRadius: 'var(--radius-md)',
           color: 'var(--clr-brand)',
           fontSize: 'var(--text-xs)',
@@ -396,7 +398,8 @@ export default function RiderTracker({ route, riderId, riderName, onRiderChange 
           marginBottom: 'var(--space-4)',
         }}
       >
-        🔋 Tips GPS Layar Mati (Kantong Jersey)
+        <MaterialIcon name="battery_charging_full" size={16} />
+        <span>Tips GPS Layar Mati (Kantong Jersey)</span>
       </button>
 
       {/* Off-Course Alert */}
@@ -505,9 +508,9 @@ export default function RiderTracker({ route, riderId, riderName, onRiderChange 
         <div className="label" style={{ marginBottom: 'var(--space-3)' }}>Mode Penggunaan</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
           {[
-            { key: 'high',   label: 'High Precision', desc: 'Update 3 detik, layar tetap menyala', icon: '⚡' },
-            { key: 'normal', label: 'Standard',        desc: 'Update 8 detik — Rekomendasi', icon: '✅' },
-            { key: 'saver',  label: 'Battery Saver',   desc: 'Update 20 detik, hemat baterai', icon: '🔋' },
+            { key: 'high',   label: 'High Precision', desc: 'Update 3 detik, layar tetap menyala', icon: 'bolt' },
+            { key: 'normal', label: 'Standard',        desc: 'Update 8 detik — Rekomendasi', icon: 'check_circle' },
+            { key: 'saver',  label: 'Battery Saver',   desc: 'Update 20 detik, hemat baterai', icon: 'battery_saver' },
           ].map(({ key, label, desc, icon }) => (
             <button
               key={key}
@@ -526,7 +529,7 @@ export default function RiderTracker({ route, riderId, riderName, onRiderChange 
                 transition: 'all var(--transition-fast)',
               }}
             >
-              <span style={{ fontSize: '1.1rem', flexShrink: 0 }}>{icon}</span>
+              <MaterialIcon name={icon} size={20} color={batteryMode === key ? 'var(--clr-brand)' : 'var(--clr-text-secondary)'} />
               <div>
                 <div style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: batteryMode === key ? 'var(--clr-brand)' : 'var(--clr-text-primary)' }}>
                   {label}
@@ -546,15 +549,17 @@ export default function RiderTracker({ route, riderId, riderName, onRiderChange 
         id={isTracking ? 'stop-tracking-btn' : 'start-tracking-btn'}
         className={`btn btn-lg w-full ${isTracking ? 'btn-danger' : 'btn-success'}`}
         onClick={isTracking ? handleStopTracking : handleStartTracking}
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
       >
         {isTracking ? (
           <>
-            <span className="spin" style={{ display: 'inline-block', fontSize: '1rem' }}>⏹</span>
-            STOP TRACKING
+            <MaterialIcon name="stop" size={20} />
+            <span>STOP TRACKING</span>
           </>
         ) : (
           <>
-            📡 MULAI LIVE TRACKING
+            <MaterialIcon name="sensors" size={20} />
+            <span>MULAI LIVE TRACKING</span>
           </>
         )}
       </button>

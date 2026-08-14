@@ -1,9 +1,5 @@
-/**
- * BackgroundGPSGuideModal.jsx
- * Modal Panduan Optimasi GPS HP saat Layar Terkunci / Dimasukkan Kantong Jersey
- */
-
 import { useState, useEffect } from 'react';
+import MaterialIcon from './MaterialIcon';
 
 export default function BackgroundGPSGuideModal({ isOpen, onClose }) {
   const [activeTab, setActiveTab] = useState('android'); // 'android', 'samsung', 'xiaomi', 'ios'
@@ -68,22 +64,24 @@ export default function BackgroundGPSGuideModal({ isOpen, onClose }) {
             width: 32, height: 32,
             borderRadius: '50%',
             cursor: 'pointer',
-            fontSize: '14px',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
           title="Tutup Modal"
         >
-          ✖
+          <MaterialIcon name="close" size={18} />
         </button>
 
         {/* Header Modal */}
         <div style={{ textAlign: 'center', marginBottom: 'var(--space-4)' }}>
-          <div style={{ fontSize: '28px', marginBottom: '4px' }}>🔋🚴</div>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, marginBottom: '6px', color: 'var(--clr-brand)' }}>
+            <MaterialIcon name="battery_charging_full" size={32} />
+            <MaterialIcon name="directions_bike" size={32} />
+          </div>
           <div style={{ fontSize: 'var(--text-lg)', fontWeight: 800, color: 'var(--clr-text-primary)' }}>
             Tips GPS Layar Mati (Kantong Jersey)
           </div>
           <div style={{ fontSize: 'var(--text-xs)', color: 'var(--clr-text-secondary)', marginTop: '2px' }}>
-            Agar lacak lokasi tetap akurat & tidak mati saat layar HP dikunci
+            Agar lacak lokasi tetap akurat &amp; tidak mati saat layar HP dikunci
           </div>
         </div>
 
@@ -92,16 +90,19 @@ export default function BackgroundGPSGuideModal({ isOpen, onClose }) {
           <div
             style={{
               padding: 'var(--space-3)',
-              background: batteryLevel < 20 ? 'rgba(239,68,68,0.15)' : 'rgba(74,222,128,0.12)',
-              border: `1px solid ${batteryLevel < 20 ? '#ef4444' : '#4ade80'}44`,
+              background: batteryLevel < 20 ? 'rgba(239,68,68,0.15)' : 'rgba(75,139,59,0.12)',
+              border: `1px solid ${batteryLevel < 20 ? '#ef4444' : 'var(--clr-brand)'}44`,
               borderRadius: 'var(--radius-md)',
               marginBottom: 'var(--space-4)',
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               fontSize: 'var(--text-xs)',
             }}
           >
-            <span style={{ fontWeight: 600 }}>🔋 Status Baterai HP Anda:</span>
-            <span style={{ fontWeight: 800, color: batteryLevel < 20 ? '#ef4444' : '#4ade80', fontFamily: 'var(--font-mono)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
+              <MaterialIcon name="battery_5_bar" size={18} color={batteryLevel < 20 ? '#ef4444' : 'var(--clr-brand)'} />
+              <span>Status Baterai HP Anda:</span>
+            </div>
+            <span style={{ fontWeight: 800, color: batteryLevel < 20 ? '#ef4444' : 'var(--clr-brand)', fontFamily: 'var(--font-mono)' }}>
               {batteryLevel}%
             </span>
           </div>
@@ -111,7 +112,7 @@ export default function BackgroundGPSGuideModal({ isOpen, onClose }) {
         <div
           style={{
             padding: 'var(--space-3) var(--space-4)',
-            background: 'rgba(0, 114, 255, 0.1)',
+            background: 'rgba(75, 139, 59, 0.08)',
             borderLeft: '4px solid var(--clr-brand)',
             borderRadius: 'var(--radius-sm)',
             fontSize: 'var(--text-xs)',
@@ -120,7 +121,7 @@ export default function BackgroundGPSGuideModal({ isOpen, onClose }) {
             lineHeight: 1.5,
           }}
         >
-          💡 <b>Fitur Wake Lock Otomatis</b> di CycloTrack berusaha menjaga layar tetap aktif. Namun agar aman saat ditaruh di kantong jersey, pastikan Penghemat Baterai tidak mematikan browser Chrome/Safari Anda.
+          <b>Fitur Wake Lock Otomatis</b> di CycloTrack berusaha menjaga layar tetap aktif. Namun agar aman saat ditaruh di kantong jersey, pastikan Penghemat Baterai tidak mematikan browser Chrome/Safari Anda.
         </div>
 
         {/* Tab Merk HP */}

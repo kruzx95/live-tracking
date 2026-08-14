@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { DeviceMobile, DownloadSimple, ArrowSquareOut } from '@phosphor-icons/react';
+import MaterialIcon from './MaterialIcon';
 
 export default function PWAInstallBanner() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -73,8 +73,9 @@ export default function PWAInstallBanner() {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               flexShrink: 0,
               boxShadow: '0 2px 8px rgba(75,139,59,0.3)',
+              color: 'white',
             }}>
-              <DeviceMobile size={22} weight="duotone" color="white" />
+              <MaterialIcon name="smartphone" size={22} />
             </div>
             <div>
               <div style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--clr-brand)' }}>
@@ -98,7 +99,7 @@ export default function PWAInstallBanner() {
             }}
             id="pwa-install-btn"
           >
-            <DownloadSimple size={14} weight="bold" /> Install
+            <MaterialIcon name="download" size={16} /> Install
           </button>
         </div>
       )}
@@ -134,8 +135,9 @@ export default function PWAInstallBanner() {
             background: 'linear-gradient(135deg, #2E3A24, #4B8B3B)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             boxShadow: '0 4px 16px rgba(75,139,59,0.3)',
+            color: 'white',
           }}>
-            <DeviceMobile size={30} weight="duotone" color="white" />
+            <MaterialIcon name="smartphone" size={32} />
           </div>
             <h3 style={{ fontSize: 'var(--text-md)', fontWeight: 800, marginBottom: 'var(--space-2)' }}>
               Cara Install di iPhone / iPad

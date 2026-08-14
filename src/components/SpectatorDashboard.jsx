@@ -5,6 +5,7 @@
  */
 
 import { useState, useMemo } from 'react';
+import MaterialIcon from './MaterialIcon';
 import { RIDER_STATUS } from '../utils/realtimeEngine';
 
 const STATUS_ORDER = [
@@ -17,12 +18,12 @@ const STATUS_ORDER = [
 ];
 
 const STATUS_CONFIG = {
-  [RIDER_STATUS.ACTIVE]:    { label: 'Aktif',      emoji: '🟢', badge: 'badge-active' },
-  [RIDER_STATUS.STOPPED]:   { label: 'Berhenti',   emoji: '🟡', badge: 'badge-stopped' },
-  [RIDER_STATUS.OFFCOURSE]: { label: 'Off-Course', emoji: '🟠', badge: 'badge-offcourse' },
-  [RIDER_STATUS.SOS]:       { label: 'SOS',        emoji: '🔴', badge: 'badge-sos' },
-  [RIDER_STATUS.FINISHED]:  { label: 'Finish',     emoji: '✅', badge: 'badge-active' },
-  [RIDER_STATUS.DNF]:       { label: 'DNF',        emoji: '⚫', badge: 'badge-dnf' },
+  [RIDER_STATUS.ACTIVE]:    { label: 'Aktif',      icon: 'check_circle', badge: 'badge-active' },
+  [RIDER_STATUS.STOPPED]:   { label: 'Berhenti',   icon: 'pause_circle', badge: 'badge-stopped' },
+  [RIDER_STATUS.OFFCOURSE]: { label: 'Off-Course', icon: 'warning', badge: 'badge-offcourse' },
+  [RIDER_STATUS.SOS]:       { label: 'SOS',        icon: 'emergency', badge: 'badge-sos' },
+  [RIDER_STATUS.FINISHED]:  { label: 'Finish',     icon: 'flag', badge: 'badge-active' },
+  [RIDER_STATUS.DNF]:       { label: 'DNF',        icon: 'cancel', badge: 'badge-dnf' },
 };
 
 function formatDuration(ms) {
@@ -95,8 +96,8 @@ export default function SpectatorDashboard({ riders = [], route = null, focusedR
             style={{
               width: '100%',
               padding: 'var(--space-2) var(--space-4)',
-              background: 'linear-gradient(135deg, rgba(0, 114, 255, 0.15), rgba(0, 198, 255, 0.15))',
-              border: '1px solid rgba(0, 198, 255, 0.4)',
+              background: 'rgba(75, 139, 59, 0.12)',
+              border: '1px solid rgba(75, 139, 59, 0.35)',
               borderRadius: 'var(--radius-md)',
               color: 'var(--clr-brand)',
               fontSize: 'var(--text-xs)',
@@ -106,7 +107,8 @@ export default function SpectatorDashboard({ riders = [], route = null, focusedR
               transition: 'all 0.2s ease',
             }}
           >
-            📱 Bagikan Link Live Event & QR Code
+            <MaterialIcon name="qr_code_2" size={16} />
+            <span>Bagikan Link Live Event &amp; QR Code</span>
           </button>
         </div>
       )}
@@ -120,7 +122,8 @@ export default function SpectatorDashboard({ riders = [], route = null, focusedR
           animation: 'connecting-blink 1s ease-in-out infinite',
         }}>
           <div style={{ fontSize: 'var(--text-sm)', fontWeight: 800, color: 'var(--clr-sos)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-            🆘 DARURAT!
+            <MaterialIcon name="emergency" size={18} color="var(--clr-sos)" />
+            <span>DARURAT!</span>
             <span style={{ fontWeight: 500, fontSize: 'var(--text-xs)', color: 'var(--clr-text-primary)' }}>
               {sosRiders.map((r) => r.name).join(', ')} membutuhkan bantuan!
             </span>
@@ -272,8 +275,9 @@ export default function SpectatorDashboard({ riders = [], route = null, focusedR
                       <span className="rider-stats">{rider.distanceTraveled?.toFixed(1) || '0.0'} km</span>
                     </div>
                     <div style={{ marginTop: '2px', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                      <span className={`badge ${cfg.badge}`} style={{ fontSize: '9px' }}>
-                        {cfg.emoji} {cfg.label}
+                      <span className={`badge ${cfg.badge}`} style={{ fontSize: '9px', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                        <MaterialIcon name={cfg.icon} size={11} />
+                        {cfg.label}
                       </span>
                       <span style={{ fontSize: '10px', color: 'var(--clr-text-muted)' }}>
                         {rider.speed?.toFixed(1) || '0.0'} km/h

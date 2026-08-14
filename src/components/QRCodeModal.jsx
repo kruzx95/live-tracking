@@ -1,9 +1,5 @@
-/**
- * QRCodeModal.jsx
- * Modal untuk menampilkan QR Code Live Event, Tombol Salin Link, dan Bagikan ke WhatsApp
- */
-
 import { useState } from 'react';
+import MaterialIcon from './MaterialIcon';
 
 export default function QRCodeModal({ isOpen, onClose, eventUrl, routeName, onToast }) {
   const [copied, setCopied] = useState(false);
@@ -17,10 +13,10 @@ export default function QRCodeModal({ isOpen, onClose, eventUrl, routeName, onTo
     try {
       await navigator.clipboard.writeText(targetUrl);
       setCopied(true);
-      onToast?.('Link Live Event berhasil disalin!', 'success', '📋');
+      onToast?.('Link Live Event berhasil disalin!', 'success', 'content_copy');
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      onToast?.('Gagal menyalin link', 'error', '❌');
+      onToast?.('Gagal menyalin link', 'error', 'cancel');
     }
   };
 
@@ -75,17 +71,17 @@ export default function QRCodeModal({ isOpen, onClose, eventUrl, routeName, onTo
             width: 32, height: 32,
             borderRadius: '50%',
             cursor: 'pointer',
-            fontSize: '14px',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
           title="Tutup Modal"
         >
-          ✖
+          <MaterialIcon name="close" size={18} />
         </button>
 
         {/* Header Modal */}
-        <div style={{ fontSize: 'var(--text-lg)', fontWeight: 800, color: 'var(--clr-text-primary)', marginBottom: 'var(--space-1)' }}>
-          📱 Bagikan Live Event
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 'var(--text-lg)', fontWeight: 800, color: 'var(--clr-text-primary)', marginBottom: 'var(--space-1)' }}>
+          <MaterialIcon name="qr_code_2" size={24} color="var(--clr-brand)" />
+          <span>Bagikan Live Event</span>
         </div>
         <div style={{ fontSize: 'var(--text-xs)', color: 'var(--clr-text-secondary)', marginBottom: 'var(--space-5)' }}>
           Scan QR Code atau bagikan link ke penonton & peserta
@@ -101,7 +97,7 @@ export default function QRCodeModal({ isOpen, onClose, eventUrl, routeName, onTo
             border: '2px solid var(--clr-brand)',
             borderRadius: 'var(--radius-md)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 0 24px rgba(0, 229, 255, 0.25)',
+            boxShadow: '0 0 24px rgba(75, 139, 59, 0.25)',
           }}
         >
           <img
@@ -122,7 +118,7 @@ export default function QRCodeModal({ isOpen, onClose, eventUrl, routeName, onTo
             borderRadius: 'var(--radius-sm)',
             marginBottom: 'var(--space-5)',
             wordBreak: 'break-all',
-            border: '1px solid rgba(0, 198, 255, 0.2)',
+            border: '1px solid rgba(75, 139, 59, 0.2)',
           }}
         >
           {targetUrl}
@@ -145,7 +141,8 @@ export default function QRCodeModal({ isOpen, onClose, eventUrl, routeName, onTo
               transition: 'all 0.2s ease',
             }}
           >
-            {copied ? '✅ Tersalin!' : '📋 Salin Link'}
+            <MaterialIcon name={copied ? 'check' : 'content_copy'} size={16} />
+            <span>{copied ? 'Tersalin!' : 'Salin Link'}</span>
           </button>
 
           <button
@@ -163,7 +160,8 @@ export default function QRCodeModal({ isOpen, onClose, eventUrl, routeName, onTo
               boxShadow: '0 4px 12px rgba(37, 211, 102, 0.3)',
             }}
           >
-            💬 WhatsApp
+            <MaterialIcon name="share" size={16} color="white" />
+            <span>WhatsApp</span>
           </button>
         </div>
       </div>

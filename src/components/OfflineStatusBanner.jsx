@@ -9,6 +9,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
+import MaterialIcon from './MaterialIcon';
 import offlineQueue from '../utils/offlineQueue';
 
 export default function OfflineStatusBanner() {
@@ -100,14 +101,10 @@ export default function OfflineStatusBanner() {
           flexShrink: 0,
         }} />
 
-        <span style={{
-          color: '#fecaca',
-          fontSize: 13,
-          fontWeight: 700,
-          letterSpacing: '0.01em',
-        }}>
-          ⚠️ Tidak Ada Koneksi Internet
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#fecaca', fontSize: 13, fontWeight: 700, letterSpacing: '0.01em' }}>
+          <MaterialIcon name="cloud_off" size={18} color="#fca5a5" />
+          <span>Tidak Ada Koneksi Internet</span>
+        </div>
 
         {pendingCount > 0 && (
           <>
@@ -127,8 +124,12 @@ export default function OfflineStatusBanner() {
               fontSize: 12,
               fontWeight: 700,
               fontFamily: 'var(--font-mono)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
             }}>
-              📡 {pendingCount} titik GPS tersimpan
+              <MaterialIcon name="sensors" size={14} color="#fff" />
+              <span>{pendingCount} titik GPS tersimpan</span>
             </span>
           </>
         )}
@@ -165,7 +166,7 @@ export default function OfflineStatusBanner() {
           maxWidth: 280,
         }}
       >
-        <span style={{ fontSize: '1.1rem' }}>✅</span>
+        <MaterialIcon name="cloud_done" size={24} color="#86efac" />
         <div>
           <div style={{ color: '#86efac', fontSize: 13, fontWeight: 700 }}>
             Koneksi Pulih!
