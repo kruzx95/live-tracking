@@ -16,7 +16,7 @@ export default defineConfig({
         name: 'CycloTrack — Community Live Tracking',
         short_name: 'CycloTrack',
         description: 'Live GPS tracking aplikasi untuk event sepeda komunitas',
-        theme_color: '#73BFC7',
+        theme_color: '#4B8B3B',
         background_color: '#FFFFFF',
         display: 'standalone',
         orientation: 'portrait-primary',

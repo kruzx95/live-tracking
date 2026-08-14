@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  cyclotrack:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cyclotrack-live-tracking
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    environment:
+      - NODE_ENV=production
