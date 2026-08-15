@@ -11,6 +11,7 @@ import { offlineQueue } from '../utils/offlineQueue';
 import { isOffCourse } from '../utils/gpxParser';
 import BackgroundGPSGuideModal from './BackgroundGPSGuideModal';
 import SOSButton from './SOSButton';
+import TrackingControlButton from './TrackingControlButton';
 
 const RIDER_COLORS = [
   '#00c6ff', '#4ade80', '#fbbf24', '#f97316',
@@ -291,8 +292,16 @@ export default function RiderTracker({ route, riderId, riderName, onRiderChange 
           className="btn btn-primary btn-lg w-full"
           onClick={handleLogin}
           disabled={!bib.trim()}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            fontWeight: 800,
+          }}
         >
-          Masuk & Mulai Live Tracking →
+          <MaterialIcon name="sensors" size={20} />
+          <span>Masuk & Mulai Live Tracking</span>
         </button>
 
         <div style={{
@@ -559,41 +568,14 @@ export default function RiderTracker({ route, riderId, riderName, onRiderChange 
         </div>
       </div>
 
-      {/* Start / Stop Tracking Button */}
-      <button
-        id={isTracking ? 'stop-tracking-btn' : 'start-tracking-btn'}
-        className={`btn btn-lg w-full ${isTracking ? 'btn-danger' : 'btn-success'}`}
-        onClick={isTracking ? handleStopTracking : handleStartTracking}
-        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
-      >
-        {isTracking ? (
-          <>
-            <MaterialIcon name="stop" size={20} />
-            <span>STOP TRACKING</span>
-          </>
-        ) : (
-          <>
-            <MaterialIcon name="sensors" size={20} />
-            <span>MULAI LIVE TRACKING</span>
-          </>
-        )}
-      </button>
-
-      {/* Status indicator saat tracking */}
-      {isTracking && (
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--space-2)',
-          fontSize: 'var(--text-xs)', color: 'var(--clr-accent)',
-        }}>
-          <div style={{
-            width: 7, height: 7, borderRadius: '50%',
-            background: 'var(--clr-accent)',
-            animation: 'sos-active-pulse 1.5s ease-in-out infinite',
-          }} />
-          LIVE — Posisi GPS sedang dipancarkan
-          {wakeLockOn && <span style={{ color: 'var(--clr-brand)', marginLeft: 'var(--space-2)' }}>🔆 Layar Terkunci</span>}
-        </div>
-      )}
+      {/* Start / Stop Tracking Module (Harmonized with SOSButton) */}
+      <TrackingControlButton
+        isTracking={isTracking}
+        batteryMode={batteryMode}
+        wakeLockOn={wakeLockOn}
+        onStartTracking={handleStartTracking}
+        onStopTracking={handleStopTracking}
+      />
 
       {/* SOS Emergency Module */}
       {hasRegistered && (
