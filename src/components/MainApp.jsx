@@ -11,7 +11,7 @@ import SpectatorDashboard from './SpectatorDashboard';
 import ReplayControls from './ReplayControls';
 import CycloTrackLogo from './CycloTrackLogo';
 import QRCodeModal from './QRCodeModal';
-import { engine, EVENT_ID, setEventId } from '../utils/realtimeEngine';
+import { engine, EVENT_ID } from '../utils/realtimeEngine';
 import { parseGPX, generateDemoRoute } from '../utils/gpxParser';
 
 // ── Constants ─────────────────────────────────────────

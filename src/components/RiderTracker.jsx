@@ -10,6 +10,7 @@ import { engine, TRANSMISSION_INTERVAL } from '../utils/realtimeEngine';
 import { offlineQueue } from '../utils/offlineQueue';
 import { isOffCourse } from '../utils/gpxParser';
 import BackgroundGPSGuideModal from './BackgroundGPSGuideModal';
+import SOSButton from './SOSButton';
 
 const RIDER_COLORS = [
   '#00c6ff', '#4ade80', '#fbbf24', '#f97316',
@@ -205,19 +206,16 @@ export default function RiderTracker({ route, riderId, riderName, onRiderChange 
     engine.pauseRiderTracking(riderIdRef.current);
   }, []);
 
-  // ── SOS ──────────────────────────────────────────
-  const handleSOSPress = useCallback(() => {
-    if (isSOS) {
-      engine.cancelSOS(riderIdRef.current);
-      setIsSOS(false);
-    } else {
-      // Double-confirm sebelum SOS
-      if (window.confirm('⚠️ KONFIRMASI SOS\n\nPastikan Anda benar-benar membutuhkan bantuan.\nPanitia akan segera menghubungi Anda.\n\nKirim SOS sekarang?')) {
-        engine.triggerSOS(riderIdRef.current);
-        setIsSOS(true);
-      }
-    }
-  }, [isSOS]);
+  // ── SOS Handlers ─────────────────────────────────
+  const handleTriggerSOS = useCallback(() => {
+    engine.triggerSOS(riderIdRef.current);
+    setIsSOS(true);
+  }, []);
+
+  const handleCancelSOS = useCallback(() => {
+    engine.cancelSOS(riderIdRef.current);
+    setIsSOS(false);
+  }, []);
 
   // ── GPS Signal Indicator ────────────────────────
   const gpsLabel = {
@@ -597,27 +595,17 @@ export default function RiderTracker({ route, riderId, riderName, onRiderChange 
         </div>
       )}
 
-      {/* SOS Button */}
+      {/* SOS Emergency Module */}
       {hasRegistered && (
         <>
           <div className="divider" />
-          <div>
-            <div className="label" style={{ marginBottom: 'var(--space-3)', color: 'var(--clr-danger)' }}>
-              🆘 Tombol Darurat
-            </div>
-            <button
-              id="sos-btn"
-              className={`btn btn-sos btn-lg w-full ${isSOS ? 'active' : ''}`}
-              onClick={handleSOSPress}
-            >
-              {isSOS ? '✅ BATALKAN SOS' : '🆘 KIRIM SOS — BUTUH BANTUAN'}
-            </button>
-            {isSOS && (
-              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--clr-danger)', textAlign: 'center', marginTop: 'var(--space-2)', animation: 'connecting-blink 1s ease-in-out infinite' }}>
-                Panitia telah diberitahu — Tetap di lokasi Anda!
-              </p>
-            )}
-          </div>
+          <SOSButton
+            isSOS={isSOS}
+            onTriggerSOS={handleTriggerSOS}
+            onCancelSOS={handleCancelSOS}
+            riderName={name}
+            bib={bib}
+          />
         </>
       )}
 
