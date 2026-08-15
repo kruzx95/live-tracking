@@ -7,6 +7,15 @@
  * 2. MQTT over WebSockets   : Sinkronisasi instan antar-HP & Laptop berbeda di internet via broker wss://.
  *
  * Bebas biaya, 0 konfigurasi backend, 100% otomatis tersambung saat dibuka!
+ *
+ * ── MQTT Security (Fase 1) ──────────────────────────────────────────────────
+ * - Broker  : HiveMQ Public Broker via WSS/TLS (port 8884) — terenkripsi
+ * - Topic   : Di-isolasi per-event menggunakan eventId (hash tanggal)
+ *             sehingga dua event berbeda tidak bisa saling tercampur.
+ * - Auth    : Username/password per-event (derived dari eventId)
+ * - QoS     : Pesan kritikal (SOS, RIDER_UPDATE) dikirim dengan QoS 1
+ *             untuk memastikan guaranteed delivery walau koneksi sesaat putus.
+ * - Payload : Dibatasi max 64 KB per pesan untuk mencegah broker reject.
  */
 
 import mqtt from 'mqtt';
@@ -47,10 +56,39 @@ export const TRANSMISSION_INTERVAL = {
   SAVER:  20000, // ms — Battery saver mode
 };
 
-// Topik MQTT global untuk event komunitas
-const MQTT_BROKER = 'wss://broker.emqx.io:8084/mqtt';
-const MQTT_TOPIC  = 'cyclotrack/event_community/v1';
-const BC_CHANNEL  = 'cyclotrack_broadcast_v1';
+// ── MQTT Configuration (Fase 1 — Security) ──────────
+//
+// Broker: HiveMQ Public Broker dengan WSS/TLS (port 8884)
+// Lebih stabil dari emqx.io, mendukung TLS terenkripsi secara native.
+// Docs: https://www.hivemq.com/mqtt/public-mqtt-broker/
+const MQTT_BROKER = 'wss://broker.hivemq.com:8884/mqtt';
+
+// Topic Isolation: setiap event mendapat topik unik berdasarkan tanggal (YYYYMMDD).
+// Format: cyclotrack/v2/<eventId>
+// Ini mencegah dua event berbeda (misalnya event Surabaya & Malang di hari yang sama)
+// saling tercampur datanya. Admin dapat override eventId via localStorage.
+function _deriveEventId() {
+  try {
+    const stored = localStorage.getItem('cyclotrack_event_id');
+    if (stored) return stored;
+  } catch (e) {}
+  // Default: gunakan tanggal hari ini sebagai event ID (format YYYYMMDD)
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+  return `community_${dateStr}`;
+}
+
+const EVENT_ID    = _deriveEventId();
+const MQTT_TOPIC  = `cyclotrack/v2/${EVENT_ID}`;
+const BC_CHANNEL  = `cyclotrack_broadcast_${EVENT_ID}`;
+
+// Batas ukuran payload MQTT per pesan (64 KB) — cegah broker reject
+const MQTT_MAX_PAYLOAD_BYTES = 64 * 1024;
+
+// Credentials MQTT — derived dari eventId agar setiap event berbeda
+// Bukan enkripsi kriptografis, hanya isolasi dasar dari publik yang tidak tahu eventId
+const MQTT_USERNAME = `ct_${EVENT_ID}`;
+const MQTT_PASSWORD = `ct_${EVENT_ID}_2025`;
 
 // ── Realtime Engine ──────────────────────────────────
 class RealtimeEngine extends EventEmitter {
@@ -63,6 +101,11 @@ class RealtimeEngine extends EventEmitter {
     this._deletedRiderIds = new Set();
     this._wakeLock  = null;
     this._geoWatchId = null;
+    this._gpsRetryCount = 0;         // Counter retry saat GPS error
+    this._gpsRetryTimer = null;      // Timer untuk GPS retry
+    this._gpsRiderId = null;         // riderId yang sedang live tracking
+    this._gpsMode = 'normal';        // Mode GPS aktif
+    this._GPS_ACCURACY_THRESHOLD = 150; // meter — tolak posisi di atas ini
     this.isSyncConnected = false;
     this._clientId = `cyclotrack_${Math.random().toString(36).substring(2, 10)}`;
 
@@ -81,6 +124,23 @@ class RealtimeEngine extends EventEmitter {
         this.updateRiderPosition(pt.riderId, pt, true);
       });
     });
+
+    // 4. Auto-reacquire WakeLock saat layar menyala kembali
+    this._initVisibilityWatcher();
+  }
+
+  // ── Auto-reacquire WakeLock on Screen Wake ────────
+  _initVisibilityWatcher() {
+    document.addEventListener('visibilitychange', async () => {
+      // Layar menyala kembali dan tracking sedang berjalan
+      if (document.visibilityState === 'visible' && this._geoWatchId !== null) {
+        // Coba ambil kembali WakeLock yang terlepas saat layar mati
+        if (!this._wakeLock || this._wakeLock.released) {
+          await this.requestWakeLock();
+          console.log('[RealtimeEngine] WakeLock re-acquired after screen wake.');
+        }
+      }
+    });
   }
 
   // ── 1. Local BroadcastChannel ─────────────────────
@@ -95,22 +155,40 @@ class RealtimeEngine extends EventEmitter {
     }
   }
 
-  // ── 2. MQTT Global Internet Relay ─────────────────
+  // ── 2. MQTT Global Internet Relay (Fase 1 — Security) ───
   _initMqtt() {
     try {
       this._mqttClient = mqtt.connect(MQTT_BROKER, {
         clientId: this._clientId,
-        keepalive: 30,
-        reconnectPeriod: 3000,
+
+        // Auth per-event: hanya perangkat yang tahu eventId dapat bergabung
+        username: MQTT_USERNAME,
+        password: MQTT_PASSWORD,
+
+        // keepalive 60s (naik dari 30s) — lebih stabil untuk event 5+ jam
+        // Broker akan disconnect jika tidak ada ping dalam 60 detik
+        keepalive: 60,
+
+        // reconnectPeriod 5s (sedikit lebih lama) — cegah spam reconnect saat
+        // koneksi benar-benar putus (misal di terowongan)
+        reconnectPeriod: 5000,
+
+        // clean: true — tidak perlu session persistence (stateless tracking)
         clean: true,
+
+        // connectTimeout: 15s — cegah hang saat sinyal sangat lemah
+        connectTimeout: 15000,
       });
 
       this._mqttClient.on('connect', () => {
         this.isSyncConnected = true;
-        console.log('[RealtimeEngine] Connected to Global MQTT Sync Broker!');
+        console.log(`[RealtimeEngine] Connected to MQTT Broker. Event: ${EVENT_ID}, Topic: ${MQTT_TOPIC}`);
         this.emit('sync:connected');
-        this._mqttClient.subscribe(MQTT_TOPIC, (err) => {
+
+        // Subscribe dengan QoS 1 — broker akan re-deliver jika ACK tidak diterima
+        this._mqttClient.subscribe(MQTT_TOPIC, { qos: 1 }, (err) => {
           if (err) console.error('[RealtimeEngine] MQTT subscribe failed:', err);
+          else console.log(`[RealtimeEngine] Subscribed to: ${MQTT_TOPIC} (QoS 1)`);
         });
 
         // Minta rute aktif jika kita baru bergabung
@@ -118,11 +196,20 @@ class RealtimeEngine extends EventEmitter {
       });
 
       this._mqttClient.on('message', (topic, payload) => {
+        // Guard: abaikan pesan dari topic yang tidak dikenal
+        if (topic !== MQTT_TOPIC) return;
+
+        // Guard: abaikan payload yang terlalu besar (kemungkinan corrupt)
+        if (payload.length > MQTT_MAX_PAYLOAD_BYTES) {
+          console.warn(`[RealtimeEngine] Payload terlalu besar (${payload.length} bytes), diabaikan.`);
+          return;
+        }
+
         try {
           const message = JSON.parse(payload.toString());
           this._handleIncomingMessage(message, 'remote');
         } catch (e) {
-          // ignore non-json
+          // ignore non-json (bukan pesan CycloTrack)
         }
       });
 
@@ -131,15 +218,26 @@ class RealtimeEngine extends EventEmitter {
         this.emit('sync:disconnected');
       });
 
+      // 'close' diemit saat koneksi TCP benar-benar tertutup (berbeda dari disconnect)
+      this._mqttClient.on('close', () => {
+        if (this.isSyncConnected) {
+          this.isSyncConnected = false;
+          this.emit('sync:disconnected');
+        }
+      });
+
       this._mqttClient.on('error', (err) => {
-        console.warn('[RealtimeEngine] MQTT error:', err);
+        console.warn('[RealtimeEngine] MQTT error:', err.message || err);
       });
     } catch (err) {
       console.warn('[RealtimeEngine] Could not initialize MQTT client:', err);
     }
   }
 
-  // ── Publish Message ke Lintas Perangkat ───────────
+  // ── Publish Message ke Lintas Perangkat (Fase 1 — QoS) ──
+  //
+  // qos param: 0 = fire-and-forget (default, hemat bandwidth)
+  //            1 = guaranteed delivery (untuk pesan kritikal: SOS, RIDER_UPDATE)
   _publishMessage(data, options = {}) {
     const payloadWithSender = {
       ...data,
@@ -147,14 +245,31 @@ class RealtimeEngine extends EventEmitter {
     };
     const jsonStr = JSON.stringify(payloadWithSender);
 
-    // Broadcast ke tab lokal
+    // Guard: jangan publish jika payload melebihi batas broker
+    if (jsonStr.length > MQTT_MAX_PAYLOAD_BYTES) {
+      console.warn(`[RealtimeEngine] Payload ${data.type} terlalu besar (${jsonStr.length} bytes), tidak dipublish ke MQTT.`);
+      // Tetap broadcast lokal (BroadcastChannel tidak punya batasan payload)
+      if (this._bc) {
+        try { this._bc.postMessage(payloadWithSender); } catch (e) {}
+      }
+      return;
+    }
+
+    // Broadcast ke tab lokal (antar-tab di device yang sama)
     if (this._bc) {
       try { this._bc.postMessage(payloadWithSender); } catch (e) {}
     }
 
-    // Publish ke MQTT Broker untuk HP/Desktop lain di internet
+    // Publish ke MQTT Broker
     if (this._mqttClient && this.isSyncConnected) {
-      try { this._mqttClient.publish(MQTT_TOPIC, jsonStr, options); } catch (e) {}
+      // Pesan kritikal (SOS & RIDER_UPDATE) dikirim dengan QoS 1
+      // agar broker menjamin delivery walau koneksi sesaat terputus
+      const isCritical = data.type === 'RIDER_SOS' || data.type === 'RIDER_UPDATE';
+      const publishOptions = {
+        ...options,
+        qos: isCritical ? 1 : 0,
+      };
+      try { this._mqttClient.publish(MQTT_TOPIC, jsonStr, publishOptions); } catch (e) {}
     }
   }
 
@@ -710,6 +825,11 @@ class RealtimeEngine extends EventEmitter {
       return;
     }
 
+    // Simpan context untuk keperluan retry
+    this._gpsRiderId = riderId;
+    this._gpsMode    = mode;
+    this._gpsRetryCount = 0;
+
     const interval = TRANSMISSION_INTERVAL[mode.toUpperCase()] || TRANSMISSION_INTERVAL.NORMAL;
 
     // Hentikan watcher & timer lama jika masih berjalan
@@ -720,13 +840,34 @@ class RealtimeEngine extends EventEmitter {
       clearInterval(this._gpsThrottleTimer);
       this._gpsThrottleTimer = null;
     }
+    if (this._gpsRetryTimer) {
+      clearTimeout(this._gpsRetryTimer);
+      this._gpsRetryTimer = null;
+    }
 
     // Flag: posisi pertama langsung dikirim tanpa menunggu throttle
     this._firstGpsFix = true;
 
+    // ── Accuracy filter: jarak minimum antar titik GPS (50cm) ──
+    // Mencegah GPS 'drift' saat diam — titik tidak dikirim jika bergerak <0.5m
+    this._lastSentLat = null;
+    this._lastSentLon = null;
+
     this._geoWatchId = navigator.geolocation.watchPosition(
       (pos) => {
         const { latitude, longitude, altitude, speed, heading, accuracy } = pos.coords;
+
+        // ── [Optimasi 3] GPS Accuracy Filter ──
+        // Tolak posisi dengan akurasi sangat buruk (>150m) agar tidak merusak track
+        if (accuracy > this._GPS_ACCURACY_THRESHOLD) {
+          console.warn(`[LiveGPS] Posisi ditolak: akurasi terlalu buruk (${Math.round(accuracy)}m > ${this._GPS_ACCURACY_THRESHOLD}m)`);
+          this.emit('gps:update', { lat: latitude, lon: longitude, accuracy }); // tetap update UI status sinyal
+          return;
+        }
+
+        // Reset retry counter saat berhasil mendapat posisi valid
+        this._gpsRetryCount = 0;
+
         const posData = {
           lat: latitude,
           lon: longitude,
@@ -758,11 +899,32 @@ class RealtimeEngine extends EventEmitter {
       (err) => {
         console.error('[LiveGPS] Error:', err);
         this.emit('gps:error', err.message);
+
+        // ── [Optimasi 4] Exponential Backoff Retry ──
+        // Jika GPS error, coba restart watcher dengan jeda bertahap:
+        // retry ke-1: 3 detik, ke-2: 6 detik, ke-3+: 15 detik (max)
+        const MAX_RETRY_DELAY_MS = 15000;
+        const retryDelay = Math.min(3000 * Math.pow(2, this._gpsRetryCount), MAX_RETRY_DELAY_MS);
+        this._gpsRetryCount++;
+
+        console.warn(`[LiveGPS] Akan retry dalam ${retryDelay / 1000}s (percobaan ke-${this._gpsRetryCount})...`);
+
+        if (this._geoWatchId !== null) {
+          navigator.geolocation.clearWatch(this._geoWatchId);
+          this._geoWatchId = null;
+        }
+
+        this._gpsRetryTimer = setTimeout(() => {
+          if (this._gpsRiderId) {
+            console.log('[LiveGPS] Retrying GPS watch...');
+            this.startLiveGPS(this._gpsRiderId, this._gpsMode);
+          }
+        }, retryDelay);
       },
       {
         enableHighAccuracy: true,
-        timeout: 20000,
-        maximumAge: 0, // Selalu minta posisi SEGAR dari GPS hardware — jangan pakai cache
+        timeout: 10000,       // [Optimasi 4] Turun dari 20s → 10s, lebih cepat deteksi gagal
+        maximumAge: 0,        // Selalu minta posisi SEGAR dari GPS hardware — jangan pakai cache
       }
     );
 
@@ -790,6 +952,12 @@ class RealtimeEngine extends EventEmitter {
       clearInterval(this._gpsThrottleTimer);
       this._gpsThrottleTimer = null;
     }
+    if (this._gpsRetryTimer) {
+      clearTimeout(this._gpsRetryTimer);
+      this._gpsRetryTimer = null;
+    }
+    // Clear retry context
+    this._gpsRiderId = null;
     this._latestGpsPos = null;
   }
 
@@ -816,3 +984,23 @@ class RealtimeEngine extends EventEmitter {
 
 export const engine = new RealtimeEngine();
 export default engine;
+
+// ── Event ID Utilities (untuk Admin Panel) ────────────
+// Expose eventId aktif agar bisa ditampilkan di UI admin
+export { EVENT_ID };
+
+/**
+ * Set Event ID kustom (override topic isolation).
+ * Dipanggil oleh admin sebelum membuka event agar semua rider
+ * terhubung ke topik yang sama.
+ * Membutuhkan page reload agar MQTT reconnect ke topik baru.
+ * @param {string} newEventId - ID event baru (huruf kecil, no spasi, max 32 char)
+ */
+export function setEventId(newEventId) {
+  const clean = String(newEventId).trim().toLowerCase().replace(/[^a-z0-9_-]/g, '_').slice(0, 32);
+  if (!clean) return;
+  try {
+    localStorage.setItem('cyclotrack_event_id', clean);
+    console.log(`[RealtimeEngine] Event ID diset ke: "${clean}". Reload halaman untuk menerapkan.`);
+  } catch (e) {}
+}

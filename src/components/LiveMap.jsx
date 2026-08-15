@@ -176,11 +176,18 @@ function createRiderPopup(rider) {
 
 // ── LiveMap Component ──────────────────────────────
 export default function LiveMap({ riders = [], route = null, focusedRiderId = null, onRiderClick }) {
-  const mapRef = useRef(null);
-  const mapInstanceRef = useRef(null);
-  const markersRef = useRef(new Map());      // riderId -> L.Marker
-  const trailsRef  = useRef(new Map());      // riderId -> L.Polyline
+  const mapRef             = useRef(null);
+  const mapInstanceRef     = useRef(null);
+  const markersRef         = useRef(new Map());   // riderId -> L.Marker
+  const trailsRef          = useRef(new Map());   // riderId -> L.Polyline
   const routeLayerGroupRef = useRef(null);
+
+  // ── [Fase 4] Icon Cache ───────────────────────────
+  // Menyimpan "icon key" terakhir per rider: `${status}_${color}`.
+  // setIcon() hanya dipanggil jika key berubah — bukan setiap posisi GPS update.
+  // Sebelumnya: createRiderIcon() dipanggil setiap kali lat/lon berubah (boros CPU).
+  // Sesudah   : createRiderIcon() hanya dipanggil saat status atau warna rider berubah.
+  const iconCacheRef = useRef(new Map()); // riderId -> lastIconKey string
 
   // Fit rute ke layar secara presisi
   const fitRouteToBounds = useCallback(() => {
@@ -336,6 +343,8 @@ export default function LiveMap({ riders = [], route = null, focusedRiderId = nu
       if (!currentIds.has(id)) {
         marker.remove();
         markersRef.current.delete(id);
+        // [Fase 4] Bersihkan icon cache agar tidak bocor memori
+        iconCacheRef.current.delete(id);
       }
     });
     trailsRef.current.forEach((trail, id) => {
@@ -367,14 +376,24 @@ export default function LiveMap({ riders = [], route = null, focusedRiderId = nu
 
       // ── Rider Marker ──
       if (markersRef.current.has(rider.id)) {
-        // Update marker posisi & icon yang sudah ada
-        // Gunakan animasi Leaflet bawaan agar perpindahan smooth
         const marker = markersRef.current.get(rider.id);
+
+        // Selalu update posisi marker (setiap GPS update)
         marker.setLatLng([rider.lat, rider.lon]);
-        marker.setIcon(createRiderIcon(rider));
-        // Update label nama (tooltip permanen)
+
+        // [Fase 4] Icon caching — hanya rebuild icon jika status ATAU color berubah.
+        // Ini mengeliminasi pembuatan string HTML panjang + L.divIcon() pada setiap
+        // GPS update yang bisa terjadi beberapa kali per detik di High Precision mode.
+        const iconKey = `${rider.status}_${rider.color}_${rider.isSOS}`;
+        if (iconCacheRef.current.get(rider.id) !== iconKey) {
+          marker.setIcon(createRiderIcon(rider));
+          iconCacheRef.current.set(rider.id, iconKey);
+        }
+
+        // Update tooltip nama (hanya perlu update jika nama berubah — jarang terjadi)
         const shortName = rider.name ? rider.name.split(' ').slice(0, 2).join(' ') : '?';
         marker.setTooltipContent(shortName);
+
         if (marker.isPopupOpen()) {
           marker.setPopupContent(createRiderPopup(rider));
         }
@@ -384,6 +403,10 @@ export default function LiveMap({ riders = [], route = null, focusedRiderId = nu
           icon: createRiderIcon(rider),
           zIndexOffset: 1000,
         }).addTo(map);
+
+        // Simpan icon key awal ke cache
+        const iconKey = `${rider.status}_${rider.color}_${rider.isSOS}`;
+        iconCacheRef.current.set(rider.id, iconKey);
 
         // Tooltip permanen: BIB + nama rider selalu terlihat tanpa klik
         const shortName = rider.bib

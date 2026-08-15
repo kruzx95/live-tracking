@@ -20,11 +20,12 @@ export default function RiderTracker({ route, riderId, riderName, onRiderChange 
   const [isTracking, setIsTracking]       = useState(false);
   const [batteryMode, setBatteryMode]     = useState('normal'); // high / normal / saver
   const [wakeLockOn, setWakeLockOn]       = useState(false);
-  const [gpsStatus, setGpsStatus]         = useState('idle'); // idle / searching / good / weak / no-signal
+  const [gpsStatus, setGpsStatus]         = useState('idle'); // idle / searching / good / weak / no-signal / retrying
   const [accuracy, setAccuracy]           = useState(null);
   const [isSOS, setIsSOS]                 = useState(false);
   const [offlineCount, setOfflineCount]   = useState(0);
   const [isOnline, setIsOnline]           = useState(navigator.onLine);
+  const [gpsRetryCount, setGpsRetryCount] = useState(0);
   const [metrics, setMetrics]             = useState({
     speed: 0, distance: 0, ele: 0, distanceToFinish: null,
   });
@@ -55,11 +56,16 @@ export default function RiderTracker({ route, riderId, riderName, onRiderChange 
 
     const unsubGPS = engine.on('gps:update', ({ accuracy: acc }) => {
       setAccuracy(acc);
-      setGpsStatus(acc < 20 ? 'good' : acc < 50 ? 'weak' : 'no-signal');
+      // Threshold akurasi sesuai filter engine (150m)
+      if (acc <= 20)       setGpsStatus('good');
+      else if (acc <= 50)  setGpsStatus('weak');
+      else if (acc <= 150) setGpsStatus('weak');   // 50-150m: masih diterima tapi ditandai lemah
+      else                 setGpsStatus('no-signal'); // >150m: ditolak engine
     });
 
     const unsubGPSErr = engine.on('gps:error', () => {
-      setGpsStatus('no-signal');
+      setGpsStatus('retrying');
+      setGpsRetryCount((c) => c + 1);
     });
 
     const unsubWL = engine.on('wakelock:active', () => setWakeLockOn(true));
@@ -177,14 +183,14 @@ export default function RiderTracker({ route, riderId, riderName, onRiderChange 
     
     setIsTracking(true);
     setGpsStatus('searching');
+    setGpsRetryCount(0);
 
     // Broadcast ke semua perangkat bahwa rider aktif kembali
     engine.resumeRiderTracking(riderIdRef.current);
 
-    // Wake Lock jika mode high precision
-    if (batteryMode === 'high') {
-      await engine.requestWakeLock();
-    }
+    // [Optimasi 2] WakeLock aktif di SEMUA mode — mencegah browser suspend GPS
+    // Di mode saver, WakeLock tetap diaktifkan karena browser suspend adalah masalah utama
+    await engine.requestWakeLock();
 
     engine.startLiveGPS(riderIdRef.current, batteryMode);
   }, [hasRegistered, batteryMode, handleLogin]);
@@ -213,13 +219,14 @@ export default function RiderTracker({ route, riderId, riderName, onRiderChange 
     }
   }, [isSOS]);
 
-  // ── GPS Signal Indicator ──────────────────────────
+  // ── GPS Signal Indicator ────────────────────────
   const gpsLabel = {
     idle:        'GPS Standby',
     searching:   'Mencari Sinyal...',
     good:        `GPS Bagus (±${accuracy ? Math.round(accuracy) : '?'}m)`,
     weak:        `GPS Lemah (±${accuracy ? Math.round(accuracy) : '?'}m)`,
-    'no-signal': 'Tidak Ada Sinyal',
+    'no-signal': 'Sinyal Ditolak (Akurasi Buruk)',
+    retrying:    `Koneksi GPS Terputus — Retry #${gpsRetryCount}...`,
   };
 
   // ── Render: Form Login BIB & PIN ──────────────────
@@ -371,8 +378,18 @@ export default function RiderTracker({ route, riderId, riderName, onRiderChange 
       </div>
 
       {/* GPS Status Bar */}
-      <div className={`gps-signal ${gpsStatus === 'good' ? 'good' : gpsStatus === 'weak' ? 'weak' : gpsStatus === 'idle' ? '' : 'no-signal'}`}>
-        <span>{gpsStatus === 'good' ? '📡' : gpsStatus === 'searching' ? '🔄' : gpsStatus === 'weak' ? '📶' : '❌'}</span>
+      <div className={`gps-signal ${
+        gpsStatus === 'good'     ? 'good'      :
+        gpsStatus === 'weak'     ? 'weak'      :
+        gpsStatus === 'retrying' ? 'no-signal' :
+        gpsStatus === 'idle'     ? ''          : 'no-signal'
+      }`}>
+        <span>
+          {gpsStatus === 'good'     ? '📡' :
+           gpsStatus === 'searching'? '🔄' :
+           gpsStatus === 'weak'     ? '📶' :
+           gpsStatus === 'retrying' ? '⏳' : '❌'}
+        </span>
         <span style={{ fontSize: 'var(--text-xs)' }}>{gpsLabel[gpsStatus]}</span>
         {!isOnline && (
           <span style={{ marginLeft: 'auto', color: 'var(--clr-warning)', fontSize: 'var(--text-xs)', fontWeight: 700 }}>
@@ -510,7 +527,7 @@ export default function RiderTracker({ route, riderId, riderName, onRiderChange 
           {[
             { key: 'high',   label: 'High Precision', desc: 'Update 3 detik, layar tetap menyala', icon: 'bolt' },
             { key: 'normal', label: 'Standard',        desc: 'Update 8 detik — Rekomendasi', icon: 'check_circle' },
-            { key: 'saver',  label: 'Battery Saver',   desc: 'Update 20 detik, hemat baterai', icon: 'battery_saver' },
+            { key: 'saver',  label: 'Battery Saver',   desc: 'Update 20 detik, hemat data seluler', icon: 'battery_saver' },
           ].map(({ key, label, desc, icon }) => (
             <button
               key={key}

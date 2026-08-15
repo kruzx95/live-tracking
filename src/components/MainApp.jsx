@@ -11,7 +11,7 @@ import SpectatorDashboard from './SpectatorDashboard';
 import ReplayControls from './ReplayControls';
 import CycloTrackLogo from './CycloTrackLogo';
 import QRCodeModal from './QRCodeModal';
-import { engine } from '../utils/realtimeEngine';
+import { engine, EVENT_ID, setEventId } from '../utils/realtimeEngine';
 import { parseGPX, generateDemoRoute } from '../utils/gpxParser';
 
 // ── Constants ─────────────────────────────────────────
@@ -301,10 +301,12 @@ export default function MainApp({ userRole, onChangeRole }) {
 
         {/* Right side actions group */}
         <div className="topbar-actions">
-          {/* Live / Sync indicator */}
+          {/* Live / Sync indicator — menampilkan event ID aktif */}
           <div
             className={`topbar-sync-badge ${isSyncConnected ? 'connected' : 'connecting'}`}
-            title={isSyncConnected ? 'Terhubung ke server sinkronisasi real-time lintas HP' : 'Mencoba terhubung ke server...'}
+            title={isSyncConnected
+              ? `Terhubung ke server sinkronisasi real-time lintas HP\nEvent: ${EVENT_ID}`
+              : `Mencoba terhubung ke server...\nEvent: ${EVENT_ID}`}
           >
             <div style={{
               width: 6, height: 6, borderRadius: '50%',
@@ -312,7 +314,9 @@ export default function MainApp({ userRole, onChangeRole }) {
               animation: 'sos-active-pulse 1.5s ease-in-out infinite',
               flexShrink: 0,
             }} />
-            <span className="topbar-sync-text">{isSyncConnected ? '⚡ Realtime Sync' : '🔄 Connecting...'}</span>
+            <span className="topbar-sync-text">
+              {isSyncConnected ? `⚡ Sync · ${EVENT_ID}` : '🔄 Connecting...'}
+            </span>
           </div>
 
           {/* Tombol QR Code & Bagikan Link */}
