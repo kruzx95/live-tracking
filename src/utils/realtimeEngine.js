@@ -63,26 +63,26 @@ export const TRANSMISSION_INTERVAL = {
 // Docs: https://www.hivemq.com/mqtt/public-mqtt-broker/
 const MQTT_BROKER = 'wss://broker.hivemq.com:8884/mqtt';
 
-// Topic Isolation: gunakan topic versi v3 untuk event Gravel Ride
-// agar terbebas dari gema/retained message rute lama
+// Topic Isolation: gunakan topic versi v4 untuk rute Gravel Ride 32.24 km
+// agar terbebas dari gema/retained message rute lama 29.08 km
 function _deriveEventId() {
   try {
     const stored = localStorage.getItem('cyclotrack_event_id');
     if (stored) return stored;
   } catch (e) {}
-  return 'gravel_ride_2026';
+  return 'gravel_ride_32km';
 }
 
 const EVENT_ID    = _deriveEventId();
-const MQTT_TOPIC  = `cyclotrack/v3/${EVENT_ID}`;
-const BC_CHANNEL  = `cyclotrack_broadcast_v3_${EVENT_ID}`;
+const MQTT_TOPIC  = `cyclotrack/v4/${EVENT_ID}`;
+const BC_CHANNEL  = `cyclotrack_broadcast_v4_${EVENT_ID}`;
 
 // Batas ukuran payload MQTT per pesan (64 KB) — cegah broker reject
 const MQTT_MAX_PAYLOAD_BYTES = 64 * 1024;
 
 // Credentials MQTT
-const MQTT_USERNAME = `ct_gravel_ride`;
-const MQTT_PASSWORD = `ct_gravel_ride_2026`;
+const MQTT_USERNAME = `ct_gravel_ride_32`;
+const MQTT_PASSWORD = `ct_gravel_ride_32km_2026`;
 
 // ── Realtime Engine ──────────────────────────────────
 class RealtimeEngine extends EventEmitter {
@@ -283,10 +283,11 @@ class RealtimeEngine extends EventEmitter {
     switch (data.type) {
       case 'ROUTE_UPDATE':
         if (data.route && data.route.name) {
-          // Tolak rute usang/demo yang dipancarkan oleh device lama
+          // Tolak rute usang/demo (bikepackers, surabaya, demo, atau rute lama 29.08 km)
           const n = data.route.name.toLowerCase();
-          if (n.includes('bikepackers') || n.includes('surabaya') || n.includes('demo')) {
-            console.log('[RealtimeEngine] Ignored obsolete route update:', data.route.name);
+          const dist = data.route.stats?.totalDistance || 0;
+          if (n.includes('bikepackers') || n.includes('surabaya') || n.includes('demo') || (dist > 0 && dist < 31)) {
+            console.log('[RealtimeEngine] Ignored obsolete route update:', data.route.name, dist);
             break;
           }
           this.route = data.route;

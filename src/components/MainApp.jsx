@@ -69,51 +69,11 @@ export default function MainApp({ userRole, onChangeRole }) {
   const [mode, setMode]               = useState(ROLE_DEFAULT_MODE[userRole] || MODES.SPECTATOR);
   const [mobileViewMode, setMobileView] = useState('split'); // 'map', 'panel', 'split'
   const [riders, setRiders]           = useState([]);
-  const [route, setRoute]             = useState(() => {
-    try {
-      const saved = localStorage.getItem('cyclotrack_cached_route_v3');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        const n = (parsed?.name || '').toLowerCase();
-        if (
-          parsed &&
-          parsed.name &&
-          !n.includes('demo') &&
-          !n.includes('surabaya') &&
-          !n.includes('bikepackers') &&
-          !n.includes('loop 10km') &&
-          parsed.trackPoints?.length > 0
-        ) {
-          return parsed;
-        }
-      }
-    } catch (e) {}
-    return generateDemoRoute();
-  });
+  const [route, setRoute]             = useState(() => generateDemoRoute());
   const [focusedRiderId, setFocused]  = useState(null);
   const [toasts, setToasts]           = useState([]);
   const [gpxLoading, setGpxLoading]   = useState(false);
-  const [routeName, setRouteName]     = useState(() => {
-    try {
-      const saved = localStorage.getItem('cyclotrack_cached_route_v3');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        const n = (parsed?.name || '').toLowerCase();
-        if (
-          parsed &&
-          parsed.name &&
-          !n.includes('demo') &&
-          !n.includes('surabaya') &&
-          !n.includes('bikepackers') &&
-          !n.includes('loop 10km') &&
-          parsed.trackPoints?.length > 0
-        ) {
-          return parsed.name;
-        }
-      }
-    } catch (e) {}
-    return 'Gravel Ride (Official Event)';
-  });
+  const [routeName, setRouteName]     = useState(() => generateDemoRoute().name);
   const [myRiderId, setMyRiderId]     = useState(null);
   const [isSyncConnected, setIsSyncConnected] = useState(engine.isSyncConnected);
   const [officialParticipants, setOfficialParticipants] = useState(engine.getParticipantsArray());
@@ -151,7 +111,6 @@ export default function MainApp({ userRole, onChangeRole }) {
     const unsubRoute  = engine.on('route:loaded', (r) => {
       setRoute(r);
       setRouteName(r.name);
-      try { localStorage.setItem('cyclotrack_cached_route_v3', JSON.stringify(r)); } catch (e) {}
 
       // Tampilkan notifikasi HANYA jika rute yang diterima benar-benar rute baru
       const routeKey = `${r.name}_${r.stats?.totalDistance}_${r.trackPoints?.length}`;
@@ -177,43 +136,18 @@ export default function MainApp({ userRole, onChangeRole }) {
     }
   });
 
-  // ── Load rute tersimpan (offline-first) & Auto-Resume Simulator ────
+  // ── Load rute resmi event & Auto-Resume Simulator ────
   useEffect(() => {
-    // Bersihkan cache lama jika ada
+    // Bersihkan semua cache lama
     try {
       localStorage.removeItem('cyclotrack_cached_route');
+      localStorage.removeItem('cyclotrack_cached_route_v3');
     } catch (e) {}
 
-    let activeRoute = null;
-    try {
-      const saved = localStorage.getItem('cyclotrack_cached_route_v3');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        const n = (parsed?.name || '').toLowerCase();
-        if (
-          parsed &&
-          parsed.name &&
-          !n.includes('demo') &&
-          !n.includes('surabaya') &&
-          !n.includes('bikepackers') &&
-          !n.includes('loop 10km') &&
-          parsed.trackPoints?.length > 0
-        ) {
-          activeRoute = parsed;
-        }
-      }
-    } catch (e) {}
-
-    if (!activeRoute) {
-      activeRoute = generateDemoRoute();
-      try {
-        localStorage.setItem('cyclotrack_cached_route_v3', JSON.stringify(activeRoute));
-      } catch (e) {}
-    }
-
-    setRoute(activeRoute);
-    setRouteName(activeRoute.name);
-    engine.setRoute(activeRoute, false);
+    const defaultRoute = generateDemoRoute();
+    setRoute(defaultRoute);
+    setRouteName(defaultRoute.name);
+    engine.setRoute(defaultRoute, false);
 
     // Auto-Resume simulator jika sebelumnya aktif sebelum refresh!
     try {
