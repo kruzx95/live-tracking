@@ -69,11 +69,33 @@ export default function MainApp({ userRole, onChangeRole }) {
   const [mode, setMode]               = useState(ROLE_DEFAULT_MODE[userRole] || MODES.SPECTATOR);
   const [mobileViewMode, setMobileView] = useState('split'); // 'map', 'panel', 'split'
   const [riders, setRiders]           = useState([]);
-  const [route, setRoute]             = useState(null);
+  const [route, setRoute]             = useState(() => {
+    try {
+      const saved = localStorage.getItem('cyclotrack_cached_route');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.name && parsed.name !== 'Rute Real Surabaya Loop 10km') {
+          return parsed;
+        }
+      }
+    } catch (e) {}
+    return generateDemoRoute();
+  });
   const [focusedRiderId, setFocused]  = useState(null);
   const [toasts, setToasts]           = useState([]);
   const [gpxLoading, setGpxLoading]   = useState(false);
-  const [routeName, setRouteName]     = useState('');
+  const [routeName, setRouteName]     = useState(() => {
+    try {
+      const saved = localStorage.getItem('cyclotrack_cached_route');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.name && parsed.name !== 'Rute Real Surabaya Loop 10km') {
+          return parsed.name;
+        }
+      }
+    } catch (e) {}
+    return 'Gravel Ride (Official Event)';
+  });
   const [myRiderId, setMyRiderId]     = useState(null);
   const [isSyncConnected, setIsSyncConnected] = useState(engine.isSyncConnected);
   const [officialParticipants, setOfficialParticipants] = useState(engine.getParticipantsArray());

@@ -239,6 +239,18 @@ export default function LiveMap({ riders = [], route = null, focusedRiderId = nu
 
     mapInstanceRef.current = map;
 
+    // Pastikan peta langsung fit bounds setelah render pertama
+    if (route?.bounds) {
+      setTimeout(() => {
+        map.invalidateSize();
+        map.fitBounds(route.bounds, { padding: [50, 50], maxZoom: 16, animate: false });
+      }, 100);
+      setTimeout(() => {
+        map.invalidateSize();
+        map.fitBounds(route.bounds, { padding: [50, 50], maxZoom: 16, animate: false });
+      }, 400);
+    }
+
     // Saat pengguna mulai menggeser peta secara manual, otomatis lepas kunci fokus rider!
     map.on('dragstart', () => {
       onRiderClick?.(null);
@@ -249,7 +261,7 @@ export default function LiveMap({ riders = [], route = null, focusedRiderId = nu
       map.remove();
       mapInstanceRef.current = null;
     };
-  }, []);
+  }, [route]);
 
   const loadedRouteKeyRef = useRef(null);
 
