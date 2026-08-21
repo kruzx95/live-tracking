@@ -63,32 +63,26 @@ export const TRANSMISSION_INTERVAL = {
 // Docs: https://www.hivemq.com/mqtt/public-mqtt-broker/
 const MQTT_BROKER = 'wss://broker.hivemq.com:8884/mqtt';
 
-// Topic Isolation: setiap event mendapat topik unik berdasarkan tanggal (YYYYMMDD).
-// Format: cyclotrack/v2/<eventId>
-// Ini mencegah dua event berbeda (misalnya event Surabaya & Malang di hari yang sama)
-// saling tercampur datanya. Admin dapat override eventId via localStorage.
+// Topic Isolation: gunakan topic versi v3 untuk event Gravel Ride
+// agar terbebas dari gema/retained message rute lama
 function _deriveEventId() {
   try {
     const stored = localStorage.getItem('cyclotrack_event_id');
     if (stored) return stored;
   } catch (e) {}
-  // Default: gunakan tanggal hari ini sebagai event ID (format YYYYMMDD)
-  const now = new Date();
-  const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
-  return `community_${dateStr}`;
+  return 'gravel_ride_2026';
 }
 
 const EVENT_ID    = _deriveEventId();
-const MQTT_TOPIC  = `cyclotrack/v2/${EVENT_ID}`;
-const BC_CHANNEL  = `cyclotrack_broadcast_${EVENT_ID}`;
+const MQTT_TOPIC  = `cyclotrack/v3/${EVENT_ID}`;
+const BC_CHANNEL  = `cyclotrack_broadcast_v3_${EVENT_ID}`;
 
 // Batas ukuran payload MQTT per pesan (64 KB) — cegah broker reject
 const MQTT_MAX_PAYLOAD_BYTES = 64 * 1024;
 
-// Credentials MQTT — derived dari eventId agar setiap event berbeda
-// Bukan enkripsi kriptografis, hanya isolasi dasar dari publik yang tidak tahu eventId
-const MQTT_USERNAME = `ct_${EVENT_ID}`;
-const MQTT_PASSWORD = `ct_${EVENT_ID}_2025`;
+// Credentials MQTT
+const MQTT_USERNAME = `ct_gravel_ride`;
+const MQTT_PASSWORD = `ct_gravel_ride_2026`;
 
 // ── Realtime Engine ──────────────────────────────────
 class RealtimeEngine extends EventEmitter {
@@ -288,7 +282,13 @@ class RealtimeEngine extends EventEmitter {
 
     switch (data.type) {
       case 'ROUTE_UPDATE':
-        if (data.route) {
+        if (data.route && data.route.name) {
+          // Tolak rute usang/demo yang dipancarkan oleh device lama
+          const n = data.route.name.toLowerCase();
+          if (n.includes('bikepackers') || n.includes('surabaya') || n.includes('demo')) {
+            console.log('[RealtimeEngine] Ignored obsolete route update:', data.route.name);
+            break;
+          }
           this.route = data.route;
           this.emit('route:loaded', data.route);
         }

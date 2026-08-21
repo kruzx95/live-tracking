@@ -71,15 +71,17 @@ export default function MainApp({ userRole, onChangeRole }) {
   const [riders, setRiders]           = useState([]);
   const [route, setRoute]             = useState(() => {
     try {
-      const saved = localStorage.getItem('cyclotrack_cached_route');
+      const saved = localStorage.getItem('cyclotrack_cached_route_v3');
       if (saved) {
         const parsed = JSON.parse(saved);
+        const n = (parsed?.name || '').toLowerCase();
         if (
           parsed &&
           parsed.name &&
-          !parsed.name.includes('Demo Route') &&
-          !parsed.name.includes('Surabaya') &&
-          !parsed.name.includes('Loop 10km') &&
+          !n.includes('demo') &&
+          !n.includes('surabaya') &&
+          !n.includes('bikepackers') &&
+          !n.includes('loop 10km') &&
           parsed.trackPoints?.length > 0
         ) {
           return parsed;
@@ -93,15 +95,17 @@ export default function MainApp({ userRole, onChangeRole }) {
   const [gpxLoading, setGpxLoading]   = useState(false);
   const [routeName, setRouteName]     = useState(() => {
     try {
-      const saved = localStorage.getItem('cyclotrack_cached_route');
+      const saved = localStorage.getItem('cyclotrack_cached_route_v3');
       if (saved) {
         const parsed = JSON.parse(saved);
+        const n = (parsed?.name || '').toLowerCase();
         if (
           parsed &&
           parsed.name &&
-          !parsed.name.includes('Demo Route') &&
-          !parsed.name.includes('Surabaya') &&
-          !parsed.name.includes('Loop 10km') &&
+          !n.includes('demo') &&
+          !n.includes('surabaya') &&
+          !n.includes('bikepackers') &&
+          !n.includes('loop 10km') &&
           parsed.trackPoints?.length > 0
         ) {
           return parsed.name;
@@ -147,7 +151,7 @@ export default function MainApp({ userRole, onChangeRole }) {
     const unsubRoute  = engine.on('route:loaded', (r) => {
       setRoute(r);
       setRouteName(r.name);
-      try { localStorage.setItem('cyclotrack_cached_route', JSON.stringify(r)); } catch (e) {}
+      try { localStorage.setItem('cyclotrack_cached_route_v3', JSON.stringify(r)); } catch (e) {}
 
       // Tampilkan notifikasi HANYA jika rute yang diterima benar-benar rute baru
       const routeKey = `${r.name}_${r.stats?.totalDistance}_${r.trackPoints?.length}`;
@@ -175,18 +179,24 @@ export default function MainApp({ userRole, onChangeRole }) {
 
   // ── Load rute tersimpan (offline-first) & Auto-Resume Simulator ────
   useEffect(() => {
+    // Bersihkan cache lama jika ada
+    try {
+      localStorage.removeItem('cyclotrack_cached_route');
+    } catch (e) {}
+
     let activeRoute = null;
     try {
-      const saved = localStorage.getItem('cyclotrack_cached_route');
+      const saved = localStorage.getItem('cyclotrack_cached_route_v3');
       if (saved) {
         const parsed = JSON.parse(saved);
-        // HANYA gunakan cache jika bukan rute demo lama
+        const n = (parsed?.name || '').toLowerCase();
         if (
           parsed &&
           parsed.name &&
-          !parsed.name.includes('Demo Route') &&
-          !parsed.name.includes('Surabaya') &&
-          !parsed.name.includes('Loop 10km') &&
+          !n.includes('demo') &&
+          !n.includes('surabaya') &&
+          !n.includes('bikepackers') &&
+          !n.includes('loop 10km') &&
           parsed.trackPoints?.length > 0
         ) {
           activeRoute = parsed;
@@ -197,7 +207,7 @@ export default function MainApp({ userRole, onChangeRole }) {
     if (!activeRoute) {
       activeRoute = generateDemoRoute();
       try {
-        localStorage.setItem('cyclotrack_cached_route', JSON.stringify(activeRoute));
+        localStorage.setItem('cyclotrack_cached_route_v3', JSON.stringify(activeRoute));
       } catch (e) {}
     }
 
