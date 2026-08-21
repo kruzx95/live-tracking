@@ -100,6 +100,23 @@ export default function RoleGate({ onSelectRole }) {
         }}>
           Live GPS Tracking Event Sepeda Komunitas
         </p>
+
+        {/* Event Route Badge */}
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 'var(--space-2)',
+          marginTop: 'var(--space-3)',
+          padding: '6px 14px',
+          background: 'rgba(75, 139, 59, 0.15)',
+          border: '1px solid var(--clr-brand)',
+          borderRadius: 'var(--radius-full)',
+          fontSize: 'var(--text-xs)',
+          color: 'var(--clr-brand)',
+          fontWeight: 700,
+        }}>
+          <span>📍</span> Rute Resmi: <strong>Gravel Ride (29.08 km)</strong>
+        </div>
       </div>
 
       {/* Grid 3-Kartu Peran — Didesain sangat mudah ditekan di HP */}

@@ -74,7 +74,14 @@ export default function MainApp({ userRole, onChangeRole }) {
       const saved = localStorage.getItem('cyclotrack_cached_route');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed && parsed.name && parsed.name !== 'Rute Real Surabaya Loop 10km') {
+        if (
+          parsed &&
+          parsed.name &&
+          !parsed.name.includes('Demo Route') &&
+          !parsed.name.includes('Surabaya') &&
+          !parsed.name.includes('Loop 10km') &&
+          parsed.trackPoints?.length > 0
+        ) {
           return parsed;
         }
       }
@@ -89,7 +96,14 @@ export default function MainApp({ userRole, onChangeRole }) {
       const saved = localStorage.getItem('cyclotrack_cached_route');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed && parsed.name && parsed.name !== 'Rute Real Surabaya Loop 10km') {
+        if (
+          parsed &&
+          parsed.name &&
+          !parsed.name.includes('Demo Route') &&
+          !parsed.name.includes('Surabaya') &&
+          !parsed.name.includes('Loop 10km') &&
+          parsed.trackPoints?.length > 0
+        ) {
           return parsed.name;
         }
       }
@@ -166,8 +180,15 @@ export default function MainApp({ userRole, onChangeRole }) {
       const saved = localStorage.getItem('cyclotrack_cached_route');
       if (saved) {
         const parsed = JSON.parse(saved);
-        // Jika cache masih rute demo lama Surabaya, otomatis upgrade ke rute resmi Gravel Ride
-        if (parsed && parsed.name !== 'Rute Real Surabaya Loop 10km') {
+        // HANYA gunakan cache jika bukan rute demo lama
+        if (
+          parsed &&
+          parsed.name &&
+          !parsed.name.includes('Demo Route') &&
+          !parsed.name.includes('Surabaya') &&
+          !parsed.name.includes('Loop 10km') &&
+          parsed.trackPoints?.length > 0
+        ) {
           activeRoute = parsed;
         }
       }

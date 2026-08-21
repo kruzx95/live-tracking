@@ -19,7 +19,7 @@
  */
 
 import mqtt from 'mqtt';
-import { haversineDistance } from './gpxParser';
+import { haversineDistance, getDefaultEventRoute } from './gpxParser';
 import offlineQueue from './offlineQueue';
 import replayEngine from './replayEngine';
 
@@ -96,7 +96,7 @@ class RealtimeEngine extends EventEmitter {
     super();
     this.riders     = new Map(); // riderId -> RiderState
     this.participants = new Map(); // bib -> { bib, name, pin, color }
-    this.route      = null;      // RouteData dari gpxParser
+    this.route      = getDefaultEventRoute(); // Default ke Rute Resmi Gravel Ride
     this._simTimers = new Map();
     this._deletedRiderIds = new Set();
     this._wakeLock  = null;
@@ -108,6 +108,10 @@ class RealtimeEngine extends EventEmitter {
     this._GPS_ACCURACY_THRESHOLD = 150; // meter — tolak posisi di atas ini
     this.isSyncConnected = false;
     this._clientId = `cyclotrack_${Math.random().toString(36).substring(2, 10)}`;
+
+    if (this.route) {
+      this.setRoute(this.route, false);
+    }
 
     // Load cached participants jika ada
     this._loadCachedParticipants();
