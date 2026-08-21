@@ -143,12 +143,19 @@ export default function MainApp({ userRole, onChangeRole }) {
     try {
       const saved = localStorage.getItem('cyclotrack_cached_route');
       if (saved) {
-        activeRoute = JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        // Jika cache masih rute demo lama Surabaya, otomatis upgrade ke rute resmi Gravel Ride
+        if (parsed && parsed.name !== 'Rute Real Surabaya Loop 10km') {
+          activeRoute = parsed;
+        }
       }
     } catch (e) {}
 
     if (!activeRoute) {
       activeRoute = generateDemoRoute();
+      try {
+        localStorage.setItem('cyclotrack_cached_route', JSON.stringify(activeRoute));
+      } catch (e) {}
     }
 
     setRoute(activeRoute);
@@ -209,13 +216,17 @@ export default function MainApp({ userRole, onChangeRole }) {
     handleGPXFile(e.target.files[0]);
   }, [handleGPXFile]);
 
-  // ── Demo Route ────────────────────────────────────
+  // ── Default Event Route ───────────────────────────
   const handleLoadDemoRoute = useCallback(() => {
-    const demo = generateDemoRoute({ lat: -7.2575, lon: 112.7521 }, 8, 300);
-    setRoute(demo);
-    setRouteName(demo.name);
-    engine.setRoute(demo);
-  }, []);
+    const defaultRoute = generateDemoRoute();
+    setRoute(defaultRoute);
+    setRouteName(defaultRoute.name);
+    engine.setRoute(defaultRoute);
+    try {
+      localStorage.setItem('cyclotrack_cached_route', JSON.stringify(defaultRoute));
+    } catch (e) {}
+    addToast('Rute Resmi Event (Gravel Ride 29 km) dimuat!', 'success', '📍');
+  }, [addToast]);
 
   // ── Simulator ─────────────────────────────────────
   const handleStartSimulator = useCallback(() => {
@@ -490,7 +501,7 @@ export default function MainApp({ userRole, onChangeRole }) {
                 </div>
                 <input ref={fileInputRef} id="gpx-file-input" type="file" accept=".gpx" style={{ display: 'none' }} onChange={handleFileInput} />
                 <button id="load-demo-route-btn" className="btn btn-ghost w-full" style={{ marginTop: 'var(--space-2)' }} onClick={handleLoadDemoRoute}>
-                  🗺️ Gunakan Demo Route (Loop 10km)
+                  🗺️ Muat Rute Resmi Event (Gravel Ride 29 km)
                 </button>
               </div>
 

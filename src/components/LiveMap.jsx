@@ -210,8 +210,8 @@ export default function LiveMap({ riders = [], route = null, focusedRiderId = nu
     if (mapInstanceRef.current || !mapRef.current) return;
 
     const map = L.map(mapRef.current, {
-      center: [-7.2575, 112.7521], // Default center
-      zoom: 12,
+      center: [-7.3284, 108.2307], // Default center Gravel Ride
+      zoom: 13,
       zoomControl: false, // Matikan kontrol zoom default di topleft
       attributionControl: true,
     });
