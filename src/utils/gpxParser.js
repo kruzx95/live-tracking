@@ -214,7 +214,7 @@ export function trackToLatLngs(trackPoints) {
 }
 
 /**
- * Rute Resmi Event: Gravel Ride (29.08 km)
+ * Rute Resmi Event: Gravel Ride (32.24 km)
  */
 export function getDefaultEventRoute() {
   return JSON.parse(JSON.stringify(officialGravelRoute));

@@ -276,9 +276,9 @@ export default function MainApp({ userRole, onChangeRole }) {
     setRouteName(defaultRoute.name);
     engine.setRoute(defaultRoute);
     try {
-      localStorage.setItem('cyclotrack_cached_route', JSON.stringify(defaultRoute));
+      localStorage.setItem('cyclotrack_cached_route_v3', JSON.stringify(defaultRoute));
     } catch (e) {}
-    addToast('Rute Resmi Event (Gravel Ride 29 km) dimuat!', 'success', '📍');
+    addToast('Rute Resmi Event (Gravel Ride 32.2 km) dimuat!', 'success', '📍');
   }, [addToast]);
 
   // ── Simulator ─────────────────────────────────────
@@ -554,7 +554,7 @@ export default function MainApp({ userRole, onChangeRole }) {
                 </div>
                 <input ref={fileInputRef} id="gpx-file-input" type="file" accept=".gpx" style={{ display: 'none' }} onChange={handleFileInput} />
                 <button id="load-demo-route-btn" className="btn btn-ghost w-full" style={{ marginTop: 'var(--space-2)' }} onClick={handleLoadDemoRoute}>
-                  🗺️ Muat Rute Resmi Event (Gravel Ride 29 km)
+                  🗺️ Muat Rute Resmi Event (Gravel Ride 32 km)
                 </button>
               </div>
 

@@ -115,7 +115,7 @@ export default function RoleGate({ onSelectRole }) {
           color: 'var(--clr-brand)',
           fontWeight: 700,
         }}>
-          <span>📍</span> Rute Resmi: <strong>Gravel Ride (29.08 km)</strong>
+          <span>📍</span> Rute Resmi: <strong>Gravel Ride (32.24 km)</strong>
         </div>
       </div>
 
